@@ -1,0 +1,52 @@
+.credibility-cue {
+  min-width: 0;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 9px;
+  border: 1px solid color-mix(in srgb, currentColor 24%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 5%, white);
+  color: var(--iqm-cyan);
+  font-size: 0.65rem;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.credibility-cue img {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  color: inherit;
+}
+
+.credibility-cue.is-protocol,
+.credibility-cue.is-evidence { color: var(--iqm-cyan); }
+.credibility-cue.is-experimental { color: var(--iqm-violet); }
+.credibility-cue.is-measurement { color: var(--iqm-blue); }
+.credibility-cue.is-confirmed { color: var(--iqm-lime-readable); }
+.credibility-cue.is-neutral { color: var(--iqm-muted); }
+
+.credibility-cue-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+@media (max-width: 430px) {
+  .credibility-cue {
+    height: 26px;
+    padding: 4px 8px;
+    font-size: 0.61rem;
+  }
+  .credibility-cue img {
+    width: 13px;
+    height: 13px;
+    flex-basis: 13px;
+  }
+}

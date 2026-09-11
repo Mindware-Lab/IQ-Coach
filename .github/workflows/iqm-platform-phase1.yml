@@ -1,0 +1,32 @@
+name: IQM Platform Phase 1
+
+on:
+  push:
+    branches:
+      - feature/iqm-platform-phase1
+    paths:
+      - "apps/iqm-platform/**"
+      - ".github/workflows/iqm-platform-phase1.yml"
+  pull_request:
+    paths:
+      - "apps/iqm-platform/**"
+      - ".github/workflows/iqm-platform-phase1.yml"
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    defaults:
+      run:
+        working-directory: apps/iqm-platform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Unit tests
+        run: npm test
+      - name: Typecheck and build
+        run: npm run build
