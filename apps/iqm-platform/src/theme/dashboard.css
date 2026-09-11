@@ -1,4 +1,5 @@
 .today-panel {
+  flex: 0 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -15,7 +16,11 @@
 .boundary-note { max-width: 100%; font-size: 0.82rem; }
 
 .network-panel {
+  flex: 1 1 auto;
+  min-height: 0;
   position: relative;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   background:
     radial-gradient(circle at 10% 15%, rgba(123, 97, 255, 0.07), transparent 28%),
@@ -159,6 +164,7 @@
 }
 
 .gtrack-panel {
+  flex: 0 0 auto;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
@@ -187,6 +193,7 @@
 }
 
 .node-hero {
+  flex: 0 0 auto;
   border-top: 5px solid var(--node-attention);
   background:
     radial-gradient(circle at 92% 8%, rgba(34, 170, 255, 0.13), transparent 33%),
@@ -224,13 +231,15 @@
 .csn-row strong { color: var(--iqm-blue); font-size: 0.75rem; }
 
 .journey-grid {
+  flex: 1 1 auto;
+  min-height: 0;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 9px;
 }
 .journey-card {
   min-width: 0;
-  min-height: 180px;
+  min-height: 0;
   margin-bottom: 0;
   display: flex;
   flex-direction: column;
@@ -259,49 +268,121 @@
 .journey-card p,
 .journey-card blockquote { color: var(--iqm-ink); }
 
+.strategy-screen .screen-content {
+  display: flex;
+  flex-direction: column;
+}
+.strategy-screen .strategy-explanation { margin-bottom: 0; }
 .strategy-grid {
+  flex: 1 1 auto;
+  min-height: 0;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-  margin: 16px 0;
+  margin: 12px 0 0;
 }
 .strategy-grid > div {
+  min-height: 0;
   border-radius: 14px;
   padding: 12px;
   background: #f8fbfe;
   border: 1px solid var(--iqm-border);
+  overflow: hidden;
 }
+.strategy-grid ul { margin: 8px 0 0; padding-left: 1.35rem; }
+.strategy-grid li { font-size: 0.86rem; }
 
-.example-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-bottom: 14px; }
+.example-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin: 10px 0 0;
+}
 .example-card {
   min-width: 0;
+  min-height: 0;
   border: 1px solid var(--iqm-border);
   border-radius: 14px;
   padding: 12px;
   background: #fbfdff;
+  overflow: hidden;
   transition: border-color 140ms ease, transform 140ms ease, box-shadow 140ms ease;
 }
-.example-card p { font-size: 0.8rem; }
+.example-card p { font-size: 0.8rem; margin-bottom: 0.55rem; }
+.example-card p:last-child { margin-bottom: 0; }
 .example-card span { color: var(--iqm-blue); font-size: 0.72rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.04em; }
 
-.mission-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; margin: 14px 0 18px; }
+.mission-screen .screen-content { display: flex; flex-direction: column; }
+.mission-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 9px;
+  margin: 12px 0 0;
+}
 .mission-card {
   min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   border: 1px solid var(--iqm-border);
+  border-top: 4px solid var(--iqm-cyan);
   border-radius: 15px;
-  padding: 12px;
+  padding: 16px;
   background: #fbfdff;
   transition: border-color 140ms ease, transform 140ms ease, box-shadow 140ms ease;
 }
-.mission-card:nth-child(1) { border-top: 4px solid var(--iqm-cyan); }
-.mission-card:nth-child(2) { border-top: 4px solid var(--iqm-violet); }
-.mission-card:nth-child(3) { border-top: 4px solid var(--iqm-lime-readable); }
-.mission-card p { color: var(--iqm-muted); font-size: 0.78rem; }
-.planned-list { border-top: 1px solid var(--iqm-border); padding-top: 10px; }
+.mission-card p { color: var(--iqm-muted); font-size: 0.82rem; }
+.mission-card .platform-button { align-self: flex-start; margin-top: 6px; }
+.planned-list {
+  min-height: 0;
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid var(--iqm-border);
+  padding-top: 10px;
+}
+.planned-list p {
+  margin: 0;
+  padding: 9px 10px;
+  border-radius: 12px;
+  background: #f8fbfe;
+  border: 1px solid var(--iqm-border);
+  font-size: 0.8rem;
+}
 
-.training-shell { padding: 10px; margin-bottom: 0; }
-.session-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 2px 3px 8px; }
-.session-complete-panel { max-width: 100%; margin-left: auto; margin-right: auto; }
+.training-shell {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+  padding: 10px;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.session-heading {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 2px 3px 8px;
+}
+#game-host {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 0;
+  overflow: hidden;
+}
+.session-complete-panel {
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
 .metric-row {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -334,20 +415,20 @@
 }
 
 @media (max-width: 720px) {
-  .network-map { width: min(100%, 390px, 48dvh); }
+  .network-map { width: min(100%, 360px, 42dvh); }
   .network-node { width: 80px; }
   .network-node-orb { width: 44px; height: 44px; border-width: 3px; }
   .network-node strong { font-size: 0.72rem; }
   .network-hub { width: 82px; }
   .journey-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .journey-card { min-height: 160px; padding: 11px; }
-  .mission-grid { grid-template-columns: 1fr; }
+  .journey-card { padding: 10px; }
+  .strategy-grid li { font-size: 0.8rem; line-height: 1.35; }
 }
 
 @media (max-width: 560px) {
   .today-panel { grid-template-columns: minmax(0, 1fr) auto; }
   .today-button { min-width: 88px; padding-inline: 12px; }
-  .network-map { width: min(100%, 340px, 45dvh); }
+  .network-map { width: min(100%, 320px, 39dvh); }
   .network-node { width: 72px; }
   .network-node-orb { width: 40px; height: 40px; }
   .network-node-status { display: none; }
@@ -355,27 +436,31 @@
   .network-hub { width: 70px; }
   .network-hub strong { font-size: 0.65rem; }
   .network-hub span { font-size: 0.84rem; }
-  .strategy-grid,
   .example-grid,
   .metric-row { grid-template-columns: 1fr; }
   .journey-grid { gap: 6px; }
-  .journey-card { min-height: 150px; padding: 9px; }
+  .journey-card { padding: 8px; }
   .journey-card h3 { font-size: 0.86rem; }
   .journey-card p,
-  .journey-card blockquote { font-size: 0.74rem; }
-  .journey-card .platform-button { padding: 8px 7px; font-size: 0.74rem; }
+  .journey-card blockquote { font-size: 0.72rem; }
+  .journey-card .platform-button { padding: 8px 6px; font-size: 0.72rem; }
+  .strategy-grid { gap: 7px; }
+  .strategy-grid > div { padding: 9px; }
+  .strategy-grid li { font-size: 0.73rem; }
+  .mission-card { padding: 13px; }
 }
 
 @media (max-width: 390px) {
-  .network-map { width: min(100%, 305px, 43dvh); }
+  .network-map { width: min(100%, 285px, 36dvh); }
   .network-node { width: 66px; }
   .network-node-orb { width: 36px; height: 36px; }
   .network-node strong { font-size: 0.66rem; }
   .network-hub { width: 62px; }
-  .journey-grid { grid-template-columns: 1fr; }
+  .journey-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .journey-card { min-height: 0; }
   .csn-row { grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
   .csn-row span { padding: 6px; font-size: 0.68rem; }
   .gtrack-panel { grid-template-columns: 38px minmax(0, 1fr); gap: 9px; }
   .gtrack-mark { width: 38px; height: 38px; border-radius: 12px; }
+  .strategy-grid li { font-size: 0.7rem; margin-bottom: 0.2rem; }
 }
