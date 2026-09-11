@@ -1,6 +1,6 @@
 import type { NodeId } from "../../types/node";
 
-export type StrategyStatus = "not_started" | "learned" | "practising";
+export type StrategyStatus = "not-started" | "learned" | "practising";
 
 const PREFIX = "iqm-platform:strategy-status:v1";
 
@@ -12,9 +12,9 @@ export function loadBrowserStrategyStatus(
   userKey: string,
   nodeId: NodeId,
 ): StrategyStatus {
-  if (typeof window === "undefined") return "not_started";
+  if (typeof window === "undefined") return "not-started";
   const value = window.localStorage.getItem(key(userKey, nodeId));
-  return value === "learned" || value === "practising" ? value : "not_started";
+  return value === "learned" || value === "practising" ? value : "not-started";
 }
 
 export function saveBrowserStrategyStatus(
