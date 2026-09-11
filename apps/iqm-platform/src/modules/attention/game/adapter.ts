@@ -1,6 +1,7 @@
 import "./styles.css";
 import type {
   GameAdapter,
+  GameCompleteHandler,
   GameSession,
   SessionConfig,
   TrainingSummary,
@@ -11,14 +12,21 @@ import {
   type AttentionRelation,
   type AttentionTrial,
 } from "./trial";
+import {
+  INITIAL_ATTENTION_LEVEL,
+  attentionConditionForLevel,
+  nextAttentionLevel,
+  normalisedAttentionLevel,
+} from "./staircase";
 
 interface AttentionResult {
   correct: boolean;
   rtMs: number;
   wrapper: "A" | "B";
+  level: number;
 }
 
-const TRIALS_PER_BRIDGE_SESSION = 20;
+const TRIALS_PER_SESSION = 20;
 
 function relationLabel(relation: AttentionRelation): string {
   if (relation === "left") return "Left";
@@ -56,6 +64,10 @@ function flowStimulus(trial: AttentionTrial): string {
     .join("");
 }
 
+function mean(values: number[]): number {
+  return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+}
+
 export class AttentionGameAdapter implements GameAdapter {
   private session: GameSession | null = null;
   private container: HTMLElement | null = null;
@@ -65,6 +77,11 @@ export class AttentionGameAdapter implements GameAdapter {
   private stageTimer: number | null = null;
   private responseStartedAt = 0;
   private paused = false;
+  private levels: Record<"A" | "B", number> = {
+    A: INITIAL_ATTENTION_LEVEL,
+    B: INITIAL_ATTENTION_LEVEL,
+  };
+  private completeHandler: GameCompleteHandler | null = null;
 
   createSession(config: SessionConfig): GameSession {
     if (config.nodeId !== "attention") {
@@ -88,6 +105,7 @@ export class AttentionGameAdapter implements GameAdapter {
     this.clearTimer();
     this.trialIndex = 0;
     this.results = [];
+    this.levels = { A: INITIAL_ATTENTION_LEVEL, B: INITIAL_ATTENTION_LEVEL };
     this.paused = false;
     this.renderTrial();
   }
@@ -116,10 +134,15 @@ export class AttentionGameAdapter implements GameAdapter {
     this.session = null;
     this.results = [];
     this.trialIndex = 0;
+    this.completeHandler = null;
   }
 
   setWrapper(wrapper: "A" | "B"): void {
     this.wrapper = wrapper;
+  }
+
+  onComplete(handler: GameCompleteHandler | null): void {
+    this.completeHandler = handler;
   }
 
   getTrainingSummary(): TrainingSummary {
@@ -129,12 +152,20 @@ export class AttentionGameAdapter implements GameAdapter {
     const medianRt = validTrials
       ? [...this.results].sort((a, b) => a.rtMs - b.rtMs)[Math.floor(validTrials / 2)].rtMs
       : 0;
+    const averageLevel = mean(this.results.map((result) => result.level));
+    const progressionScore = Math.max(
+      0,
+      Math.min(1, accuracy * 0.65 + normalisedAttentionLevel(averageLevel) * 0.35),
+    );
+
     return {
-      progressionScore: accuracy,
+      progressionScore,
       validTrials,
       accuracy,
+      level: Number(averageLevel.toFixed(1)),
       displayMetrics: [
         { label: "Accuracy", value: `${Math.round(accuracy * 100)}%` },
+        { label: "Difficulty", value: validTrials ? Number(averageLevel.toFixed(1)) : "—" },
         { label: "Median response", value: validTrials ? `${Math.round(medianRt)} ms` : "—" },
       ],
     };
@@ -142,7 +173,7 @@ export class AttentionGameAdapter implements GameAdapter {
 
   private renderIdle(): void {
     if (!this.container) return;
-    this.container.innerHTML = `<div class="attention-message"><strong>Attention Control</strong><span>ACC-only donor bridge ready.</span></div>`;
+    this.container.innerHTML = `<div class="attention-message"><strong>Attention Control</strong><span>Majority extraction under interference. Binding/working-memory components are not part of this node.</span></div>`;
   }
 
   private currentWrapper(): "A" | "B" {
@@ -159,25 +190,29 @@ export class AttentionGameAdapter implements GameAdapter {
 
   private renderTrial(): void {
     if (this.paused || !this.container || !this.session) return;
-    if (this.trialIndex >= TRIALS_PER_BRIDGE_SESSION) {
+    if (this.trialIndex >= TRIALS_PER_SESSION) {
       this.renderComplete();
       return;
     }
 
     const wrapper = this.currentWrapper();
+    const level = this.levels[wrapper];
+    const condition = attentionConditionForLevel(level);
     const trial = generateAttentionTrial({
       sessionId: this.session.id,
       trialIndex: this.trialIndex,
       wrapper,
-      // First donor bridge proves the clean A/B carrier contract using ACC only.
-      // Relational ACC cells remain Attention-owned and are migrated next; BSE is excluded.
+      // Phase-1 donor migration uses the clean ACC absolute-majority operation.
+      // Relational ACC remains a later Attention extension; BSE is excluded.
       frame: "absolute",
+      ratio: condition.ratio,
+      exposureMs: condition.exposureMs,
     });
 
     this.container.innerHTML = `
       <div class="attention-head">
-        <span>${wrapper === "A" ? "Static arrows" : "Motion flow"}</span>
-        <span>${this.trialIndex + 1} / ${TRIALS_PER_BRIDGE_SESSION}</span>
+        <span>${wrapper === "A" ? "Static directions" : "Motion directions"}</span>
+        <span>${this.trialIndex + 1} / ${TRIALS_PER_SESSION}</span>
       </div>
       <div class="attention-stage" aria-label="Attention stimulus">
         ${trial.carrier === "arrow" ? arrowStimulus(trial) : flowStimulus(trial)}
@@ -186,14 +221,14 @@ export class AttentionGameAdapter implements GameAdapter {
     `;
 
     this.clearTimer();
-    this.stageTimer = window.setTimeout(() => this.renderResponse(trial), trial.exposureMs);
+    this.stageTimer = window.setTimeout(() => this.renderResponse(trial, level), trial.exposureMs);
   }
 
-  private renderResponse(trial: AttentionTrial): void {
+  private renderResponse(trial: AttentionTrial, level: number): void {
     if (!this.container || this.paused) return;
     this.responseStartedAt = performance.now();
     this.container.innerHTML = `
-      <div class="attention-head"><span>Respond</span><span>${this.trialIndex + 1} / ${TRIALS_PER_BRIDGE_SESSION}</span></div>
+      <div class="attention-head"><span>Respond</span><span>${this.trialIndex + 1} / ${TRIALS_PER_SESSION}</span></div>
       <div class="attention-response" role="group" aria-label="Choose majority direction">
         ${trial.responseOptions.map((relation) => `<button type="button" data-relation="${relation}">${relationLabel(relation)}</button>`).join("")}
       </div>
@@ -201,11 +236,14 @@ export class AttentionGameAdapter implements GameAdapter {
     this.container.querySelectorAll<HTMLButtonElement>("[data-relation]").forEach((button) => {
       button.addEventListener("click", () => {
         const response = button.dataset.relation as AttentionRelation;
+        const correct = response === trial.correctResponse;
         this.results.push({
-          correct: response === trial.correctResponse,
+          correct,
           rtMs: performance.now() - this.responseStartedAt,
           wrapper: trial.wrapper,
+          level,
         });
+        this.levels[trial.wrapper] = nextAttentionLevel(level, correct);
         this.trialIndex += 1;
         this.stageTimer = window.setTimeout(() => this.renderTrial(), 180);
       }, { once: true });
@@ -221,6 +259,7 @@ export class AttentionGameAdapter implements GameAdapter {
         <span>${summary.displayMetrics?.map((metric) => `${metric.label}: ${metric.value}`).join(" · ")}</span>
       </div>
     `;
+    this.completeHandler?.(summary);
   }
 
   private clearTimer(): void {
