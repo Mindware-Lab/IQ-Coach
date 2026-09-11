@@ -2,17 +2,57 @@
 .section-heading { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; }
 .boundary-note { max-width: 430px; font-size: 0.9rem; }
 .node-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
-.node-card { display: flex; gap: 12px; min-height: 128px; padding: 16px; border: 1px solid var(--iqm-border); border-radius: 16px; background: linear-gradient(180deg, #fff 0%, #fbfdff 100%); }
+.node-card { display: flex; gap: 12px; min-height: 150px; padding: 16px; border: 1px solid var(--iqm-border); border-radius: 16px; background: linear-gradient(180deg, #fff 0%, #fbfdff 100%); opacity: 0.72; }
+.node-card-unlocked { opacity: 1; border-color: #b9dbee; }
+.node-card-body { min-width: 0; width: 100%; display: flex; flex-direction: column; }
 .node-card p { color: var(--iqm-muted); font-size: 0.9rem; margin-bottom: 0.75rem; }
+.node-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: auto; }
 .node-dot { width: 14px; height: 14px; flex: 0 0 14px; margin-top: 4px; border-radius: 50%; border: 2px solid var(--iqm-cyan); background: transparent; }
+.node-card-unlocked .node-dot { background: var(--iqm-cyan); }
 .node-state { display: inline-block; color: var(--iqm-muted); font-size: 0.78rem; font-weight: 700; }
 .gtrack-panel { border-top: 4px solid var(--iqm-lime); }
 
+.node-hero { border-top: 5px solid var(--iqm-cyan); }
+.csn-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.csn-row span { padding: 8px 11px; border: 1px solid var(--iqm-border); border-radius: 999px; color: var(--iqm-muted); background: #fbfdff; }
+.csn-row strong { color: var(--iqm-blue); margin-right: 4px; }
+
+.journey-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.journey-card { margin-bottom: 20px; min-height: 260px; display: flex; flex-direction: column; }
+.journey-card .platform-button { margin-top: auto; align-self: flex-start; }
+
+.strategy-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin: 22px 0; }
+.example-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
+.example-card { border: 1px solid var(--iqm-border); border-radius: 14px; padding: 15px; background: #fbfdff; }
+.example-card span { color: var(--iqm-blue); font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+
+.mission-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 20px 0 28px; }
+.mission-card { border: 1px solid var(--iqm-border); border-radius: 16px; padding: 16px; background: #fbfdff; }
+.mission-card p { color: var(--iqm-muted); font-size: 0.9rem; }
+.planned-list { border-top: 1px solid var(--iqm-border); padding-top: 12px; }
+
+.training-shell { padding: 18px; }
+.session-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; padding: 6px 4px 14px; }
+.session-complete-panel { max-width: 760px; margin-left: auto; margin-right: auto; }
+.metric-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 20px 0; }
+.metric-row span { border: 1px solid var(--iqm-border); border-radius: 14px; padding: 14px; background: #fbfdff; }
+
 @media (max-width: 900px) {
-  .node-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .node-grid,
+  .journey-grid,
+  .mission-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 700px) {
+  .strategy-grid,
+  .example-grid,
+  .metric-row { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 620px) {
-  .section-heading { flex-direction: column; }
-  .node-grid { grid-template-columns: 1fr; }
+  .section-heading,
+  .session-heading { flex-direction: column; }
+  .node-grid,
+  .journey-grid,
+  .mission-grid { grid-template-columns: 1fr; }
 }
