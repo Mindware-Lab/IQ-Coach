@@ -30,6 +30,8 @@ export interface TrainingSummary {
   displayMetrics?: DisplayMetric[];
 }
 
+export type GameCompleteHandler = (summary: TrainingSummary) => void;
+
 export interface GameAdapter {
   createSession(config: SessionConfig): GameSession;
   mount(container: HTMLElement): Promise<void> | void;
@@ -39,4 +41,5 @@ export interface GameAdapter {
   destroy(): void;
   setWrapper(wrapper: "A" | "B"): void;
   getTrainingSummary(): TrainingSummary;
+  onComplete?(handler: GameCompleteHandler | null): void;
 }
