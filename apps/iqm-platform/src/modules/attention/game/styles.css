@@ -1,0 +1,107 @@
+.attention-game {
+  min-height: 430px;
+  border: 1px solid var(--iqm-border);
+  border-radius: 18px;
+  background: var(--iqm-surface);
+  overflow: hidden;
+}
+
+.attention-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 16px;
+  color: var(--iqm-muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+  border-bottom: 1px solid var(--iqm-border);
+}
+
+.attention-stage {
+  position: relative;
+  width: min(72vw, 560px);
+  aspect-ratio: 1;
+  max-height: 340px;
+  margin: 18px auto 8px;
+  border-radius: 20px;
+  background: radial-gradient(circle at center, #ffffff 0%, #f5faff 76%, #eef6fb 100%);
+  overflow: hidden;
+}
+
+.attention-arrow {
+  position: absolute;
+  font-size: clamp(1.65rem, 4vw, 2.5rem);
+  line-height: 1;
+  color: var(--iqm-blue);
+  transform-origin: center;
+}
+
+.attention-aperture {
+  position: absolute;
+  width: 18%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1px solid rgba(39, 100, 183, 0.16);
+  overflow: hidden;
+}
+
+.attention-flow-dot {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--iqm-blue);
+  opacity: 0.72;
+  animation: attention-flow 820ms linear infinite;
+}
+
+@keyframes attention-flow {
+  from { transform: translate(calc(var(--dx) * -0.5), calc(var(--dy) * -0.5)); }
+  to { transform: translate(calc(var(--dx) * 0.5), calc(var(--dy) * 0.5)); }
+}
+
+.attention-hint {
+  text-align: center;
+  color: var(--iqm-muted);
+  font-weight: 700;
+  margin: 0 0 18px;
+}
+
+.attention-response {
+  min-height: 360px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 160px));
+  justify-content: center;
+  align-content: center;
+  gap: 16px;
+  padding: 32px;
+}
+
+.attention-response button,
+.platform-button {
+  border: 0;
+  border-radius: 14px;
+  padding: 14px 18px;
+  background: var(--iqm-blue);
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.attention-response button:hover,
+.platform-button:hover { filter: brightness(1.06); }
+
+.attention-message {
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px;
+  text-align: center;
+}
+
+.attention-message strong { font-size: 1.35rem; }
+.attention-message span { color: var(--iqm-muted); }
