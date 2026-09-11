@@ -28,6 +28,8 @@ interface RuntimeState {
   authMessage: string;
   notice: string;
   gamePaused: boolean;
+  strategyPage: number;
+  missionPage: number;
 }
 
 interface NetworkNodeUi {
@@ -66,6 +68,17 @@ function listItems(items: readonly string[]): string {
   return `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
 }
 
+function pagerMarkup(currentPage: number, totalPages: number): string {
+  if (totalPages <= 1) return "";
+  if (totalPages > 6) {
+    return `<div class="screen-pager" aria-label="Page ${currentPage + 1} of ${totalPages}">Page ${currentPage + 1} of ${totalPages}</div>`;
+  }
+  return `<div class="screen-pager" aria-label="Page ${currentPage + 1} of ${totalPages}">
+    ${Array.from({ length: totalPages }, (_, index) => `<span class="screen-pager-dot ${index === currentPage ? "is-active" : ""}" aria-hidden="true"></span>`).join("")}
+    <span>${currentPage + 1}/${totalPages}</span>
+  </div>`;
+}
+
 export async function bootstrap(root: HTMLElement): Promise<void> {
   const localPreview =
     !isPlatformAuthConfigured &&
@@ -79,6 +92,8 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     authMessage: "",
     notice: "",
     gamePaused: false,
+    strategyPage: 0,
+    missionPage: 0,
   };
 
   const userKey = (): string => state.user?.id ?? "local-preview";
@@ -102,11 +117,11 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
   }
 
   function renderConfigurationError(): void {
-    root.innerHTML = shell(`<section class="panel"><p class="section-kicker">SETUP</p><h2>Sign-in is not ready yet</h2><p>Add the platform Supabase settings to enable accounts.</p></section>`);
+    root.innerHTML = shell(`<section class="panel screen-panel"><p class="section-kicker">SETUP</p><h2>Sign-in is not ready yet</h2><p>Add the platform Supabase settings to enable accounts.</p></section>`);
   }
 
   function renderSignIn(): void {
-    root.innerHTML = shell(`<section class="panel auth-panel">
+    root.innerHTML = shell(`<section class="panel screen-panel auth-panel">
       <p class="section-kicker">YOUR ACCOUNT</p><h2>Sign in once</h2>
       <p>One account gives you access to every coach you own.</p>
       <form id="platform-auth-form" class="auth-form">
@@ -164,6 +179,8 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
 
   function renderDashboard(): void {
     state.selectedNodeId = null;
+    state.strategyPage = 0;
+    state.missionPage = 0;
     const attentionReady = state.unlocked.has("attention") && isNodeModuleRegistered("attention");
     const attentionProgress = loadBrowserNodeProgress(userKey(), "attention");
     root.innerHTML = shell(`
@@ -185,6 +202,8 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
   function renderNodeHome(nodeId: NodeId): void {
     if (!isNodeModuleRegistered(nodeId) || !state.unlocked.has(nodeId)) return;
     state.selectedNodeId = nodeId;
+    state.strategyPage = 0;
+    state.missionPage = 0;
     const module = getNodeModule(nodeId);
     const progress = loadBrowserNodeProgress(userKey(), nodeId);
     const strategyStatus = loadBrowserStrategyStatus(userKey(), nodeId);
@@ -205,19 +224,81 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
   function renderStrategy(nodeId: NodeId): void {
     const module = getNodeModule(nodeId);
     const status = loadBrowserStrategyStatus(userKey(), nodeId);
-    root.innerHTML = shell(`<section class="panel"><button type="button" class="text-button" data-action="node-home">← ${escapeHtml(module.shortTitle)}</button><p class="section-kicker">USE</p><h2>${escapeHtml(module.strategy.handle)}</h2><p>${escapeHtml(module.strategy.explanation)}</p>
-      <div class="strategy-grid"><div><h3>Use it when…</h3>${listItems(module.strategy.targetCues)}</div><div><h3>Skip it when…</h3>${listItems(module.strategy.antiCues)}</div></div>
-      <h3>Try these examples</h3><div class="example-grid">${[...module.strategy.workedExamples, ...module.strategy.changedExamples].map((example) => `<article class="example-card"><strong>${escapeHtml(example.title)}</strong><p>${escapeHtml(example.situation)}</p><span>${example.usePolicy ? "Use it" : "Try something else"}</span><p>${escapeHtml(example.explanation)}</p></article>`).join("")}</div>
-      <div class="button-row"><button type="button" class="platform-button" data-strategy-status="learned">${status === "learned" ? "Got it ✓" : "I get it"}</button><button type="button" class="platform-button secondary-button" data-strategy-status="practising">${status === "practising" ? "Practising ✓" : "I’m practising"}</button></div>
+    const examples = [...module.strategy.workedExamples, ...module.strategy.changedExamples];
+    const examplesPerPage = window.innerWidth <= 560 ? 1 : 2;
+    const examplePageCount = Math.max(1, Math.ceil(examples.length / examplesPerPage));
+    const totalPages = 1 + examplePageCount;
+    state.strategyPage = Math.max(0, Math.min(state.strategyPage, totalPages - 1));
+    const page = state.strategyPage;
+
+    const pageContent = page === 0
+      ? `<div class="screen-content">
+          <h2>${escapeHtml(module.strategy.handle)}</h2>
+          <p class="strategy-explanation">${escapeHtml(module.strategy.explanation)}</p>
+          <div class="strategy-grid"><div><h3>Use it when…</h3>${listItems(module.strategy.targetCues)}</div><div><h3>Skip it when…</h3>${listItems(module.strategy.antiCues)}</div></div>
+        </div>`
+      : (() => {
+          const start = (page - 1) * examplesPerPage;
+          const pageExamples = examples.slice(start, start + examplesPerPage);
+          return `<div class="screen-content">
+            <h2>Try it in different situations</h2>
+            <p class="muted-copy">The cue matters more than the surface details.</p>
+            <div class="example-grid">${pageExamples.map((example) => `<article class="example-card"><strong>${escapeHtml(example.title)}</strong><p>${escapeHtml(example.situation)}</p><span>${example.usePolicy ? "Use it" : "Try something else"}</span><p>${escapeHtml(example.explanation)}</p></article>`).join("")}</div>
+          </div>`;
+        })();
+
+    const previous = page > 0
+      ? `<button type="button" class="platform-button secondary-button compact-button" data-strategy-page="${page - 1}">← Back</button>`
+      : `<span aria-hidden="true"></span>`;
+    const next = page < totalPages - 1
+      ? `<button type="button" class="platform-button compact-button" data-strategy-page="${page + 1}">Next →</button>`
+      : `<div class="strategy-status-actions"><button type="button" class="platform-button compact-button" data-strategy-status="learned">${status === "learned" ? "Got it ✓" : "I get it"}</button><button type="button" class="platform-button secondary-button compact-button" data-strategy-status="practising">${status === "practising" ? "Practising ✓" : "Practise"}</button></div>`;
+
+    root.innerHTML = shell(`<section class="panel screen-panel strategy-screen">
+      <button type="button" class="text-button" data-action="node-home">← ${escapeHtml(module.shortTitle)}</button>
+      <p class="section-kicker">USE</p>
+      ${pageContent}
+      <div class="screen-footer">${previous}${pagerMarkup(page, totalPages)}${next}</div>
     </section>`);
   }
 
   function renderMissions(nodeId: NodeId): void {
     const module = getNodeModule(nodeId);
     const missions = loadBrowserMissions(userKey(), nodeId);
-    root.innerHTML = shell(`<section class="panel"><button type="button" class="text-button" data-action="node-home">← ${escapeHtml(module.shortTitle)}</button><p class="section-kicker">APPLY</p><h2>Pick one small real-life mission</h2><p>Choose something easy to notice and easy to try.</p>
-      <div class="mission-grid">${module.missions.map((mission) => `<article class="mission-card"><h3>${escapeHtml(mission.title)}</h3><p>${escapeHtml(mission.contextExample)}</p><button type="button" class="platform-button secondary-button" data-plan-mission="${escapeHtml(mission.id)}">Choose this</button></article>`).join("")}</div>
-      <h3>Your missions</h3>${missions.length ? `<div class="planned-list">${missions.map((mission) => `<p><strong>${escapeHtml(mission.context)}</strong><br>${escapeHtml(mission.intendedPolicy)}</p>`).join("")}</div>` : `<p class="muted-copy">Nothing planned yet.</p>`}
+    const savedPerPage = 2;
+    const savedPageCount = Math.max(1, Math.ceil(missions.length / savedPerPage));
+    const firstSavedPage = module.missions.length;
+    const totalPages = firstSavedPage + savedPageCount;
+    state.missionPage = Math.max(0, Math.min(state.missionPage, totalPages - 1));
+    const page = state.missionPage;
+
+    let pageContent = "";
+    if (page < firstSavedPage) {
+      const mission = module.missions[page];
+      pageContent = `<div class="screen-content">
+        <h2>Pick one small real-life mission</h2><p class="muted-copy">Choose something easy to notice and easy to try.</p>
+        <div class="mission-grid"><article class="mission-card"><h3>${escapeHtml(mission.title)}</h3><p>${escapeHtml(mission.contextExample)}</p><button type="button" class="platform-button secondary-button" data-plan-mission="${escapeHtml(mission.id)}">Choose this</button></article></div>
+      </div>`;
+    } else {
+      const savedIndex = page - firstSavedPage;
+      const savedChunk = missions.slice(savedIndex * savedPerPage, (savedIndex + 1) * savedPerPage);
+      pageContent = `<div class="screen-content">
+        <h2>Your missions</h2><p class="muted-copy">Small, cue-linked practice keeps the skill connected to real life.</p>
+        ${savedChunk.length ? `<div class="planned-list">${savedChunk.map((mission) => `<p><strong>${escapeHtml(mission.context)}</strong><br>${escapeHtml(mission.intendedPolicy)}</p>`).join("")}</div>` : `<p class="muted-copy">Nothing planned yet.</p>`}
+      </div>`;
+    }
+
+    const previous = page > 0
+      ? `<button type="button" class="platform-button secondary-button compact-button" data-mission-page="${page - 1}">← Back</button>`
+      : `<span aria-hidden="true"></span>`;
+    const next = page < totalPages - 1
+      ? `<button type="button" class="platform-button compact-button" data-mission-page="${page + 1}">Next →</button>`
+      : `<span aria-hidden="true"></span>`;
+
+    root.innerHTML = shell(`<section class="panel screen-panel mission-screen">
+      <button type="button" class="text-button" data-action="node-home">← ${escapeHtml(module.shortTitle)}</button><p class="section-kicker">APPLY</p>
+      ${pageContent}
+      <div class="screen-footer">${previous}${pagerMarkup(page, totalPages)}${next}</div>
     </section>`);
   }
 
@@ -244,7 +325,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
 
   function renderSessionSummary(nodeId: NodeId, summary: TrainingSummary, decision: ProgressionDecision): void {
     const module = getNodeModule(nodeId);
-    root.innerHTML = shell(`<section class="panel session-complete-panel"><p class="section-kicker">DONE</p><h2>Nice work</h2>
+    root.innerHTML = shell(`<section class="panel screen-panel session-complete-panel"><p class="section-kicker">DONE</p><h2>Nice work</h2>
       <div class="metric-row">${(summary.displayMetrics ?? []).map((metric) => `<span><strong>${escapeHtml(metric.label)}</strong><br>${escapeHtml(metric.value)}</span>`).join("")}</div>
       <p><strong>Next:</strong> ${escapeHtml(PHASE_PUBLIC_LABELS[decision.state.phase])}</p><p class="muted-copy">Your training path adapts as you go.</p>
       <div class="button-row"><button type="button" class="platform-button" data-action="node-home">Back to ${escapeHtml(module.shortTitle)}</button><button type="button" class="platform-button secondary-button" data-action="strategy">Use it in real life</button></div></section>`);
@@ -269,7 +350,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
   root.addEventListener("click", (event) => {
     const rawTarget = event.target;
     if (!(rawTarget instanceof Element)) return;
-    const target = rawTarget.closest<HTMLElement>("[data-action], [data-open-node], [data-plan-mission], [data-strategy-status]");
+    const target = rawTarget.closest<HTMLElement>("[data-action], [data-open-node], [data-plan-mission], [data-strategy-status], [data-strategy-page], [data-mission-page]");
     if (!target) return;
 
     const openNodeId = target.dataset.openNode as NodeId | undefined;
@@ -299,10 +380,12 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       return;
     }
     if (action === "strategy" && state.selectedNodeId) {
+      state.strategyPage = 0;
       renderStrategy(state.selectedNodeId);
       return;
     }
     if (action === "missions" && state.selectedNodeId) {
+      state.missionPage = 0;
       renderMissions(state.selectedNodeId);
       return;
     }
@@ -312,6 +395,20 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       if (state.gamePaused) module.game.pause?.();
       else module.game.resume?.();
       target.textContent = state.gamePaused ? "Resume" : "Pause";
+      return;
+    }
+
+    const strategyPage = target.dataset.strategyPage;
+    if (strategyPage !== undefined && state.selectedNodeId) {
+      state.strategyPage = Number.parseInt(strategyPage, 10) || 0;
+      renderStrategy(state.selectedNodeId);
+      return;
+    }
+
+    const missionPage = target.dataset.missionPage;
+    if (missionPage !== undefined && state.selectedNodeId) {
+      state.missionPage = Number.parseInt(missionPage, 10) || 0;
+      renderMissions(state.selectedNodeId);
       return;
     }
 
@@ -341,6 +438,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       };
       saveBrowserMission(userKey(), mission);
       state.notice = "Mission added.";
+      state.missionPage = module.missions.length;
       renderMissions(state.selectedNodeId);
     }
   });
@@ -368,6 +466,8 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       state.user = user;
       state.selectedNodeId = null;
       state.notice = "";
+      state.strategyPage = 0;
+      state.missionPage = 0;
       if (!user) {
         state.entitlements = [];
         state.unlocked = new Set<NodeId>();
