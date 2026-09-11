@@ -3,9 +3,11 @@ import "./theme/base.css";
 import "./theme/dashboard.css";
 import { bootstrap } from "./app/bootstrap";
 import { attentionModule } from "./modules/attention/module";
+import { generativeSearchModule } from "./modules/generative-search/module";
 import { registerNodeModule } from "./modules/registry";
 
 registerNodeModule(attentionModule);
+registerNodeModule(generativeSearchModule);
 
 const root = document.querySelector<HTMLElement>("#app");
 if (!root) {
