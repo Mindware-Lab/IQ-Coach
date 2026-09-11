@@ -18,10 +18,15 @@ import {
   nextAttentionLevel,
   normalisedAttentionLevel,
 } from "./staircase";
+import {
+  ATTENTION_DONOR_TIMING,
+  renderAttentionStimulus,
+  type AttentionStage,
+} from "./stimulus";
 
 interface AttentionResult {
   correct: boolean;
-  rtMs: number;
+  rtMs: number | null;
   wrapper: "A" | "B";
   level: number;
 }
@@ -35,37 +40,14 @@ function relationLabel(relation: AttentionRelation): string {
   return "In";
 }
 
-function angleForVector(x: number, y: number): number {
-  return (Math.atan2(y, x) * 180) / Math.PI;
-}
-
-function arrowStimulus(trial: AttentionTrial): string {
-  return trial.items
-    .map((item) => {
-      const angle = angleForVector(item.vector.x, item.vector.y);
-      return `<span class="attention-arrow" style="left:${item.position.x}%;top:${item.position.y}%;transform:translate(-50%,-50%) rotate(${angle}deg)">➜</span>`;
-    })
-    .join("");
-}
-
-function flowStimulus(trial: AttentionTrial): string {
-  return trial.items
-    .map((item, itemIndex) => {
-      const dx = Math.round(item.vector.x * 13);
-      const dy = Math.round(item.vector.y * 13);
-      const dots = Array.from({ length: 12 }, (_, dotIndex) => {
-        const left = 12 + ((dotIndex * 29 + itemIndex * 11) % 76);
-        const top = 12 + ((dotIndex * 43 + itemIndex * 17) % 76);
-        const delay = -((dotIndex % 6) * 110);
-        return `<span class="attention-flow-dot" style="left:${left}%;top:${top}%;--dx:${dx}px;--dy:${dy}px;animation-delay:${delay}ms"></span>`;
-      }).join("");
-      return `<span class="attention-aperture" style="left:${item.position.x}%;top:${item.position.y}%">${dots}</span>`;
-    })
-    .join("");
-}
-
 function mean(values: number[]): number {
   return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+}
+
+function median(values: number[]): number {
+  if (!values.length) return 0;
+  const ordered = [...values].sort((a, b) => a - b);
+  return ordered[Math.floor(ordered.length / 2)];
 }
 
 export class AttentionGameAdapter implements GameAdapter {
@@ -77,6 +59,10 @@ export class AttentionGameAdapter implements GameAdapter {
   private stageTimer: number | null = null;
   private responseStartedAt = 0;
   private paused = false;
+  private activeTrial: AttentionTrial | null = null;
+  private activeLevel = INITIAL_ATTENTION_LEVEL;
+  private stage: AttentionStage = "ready";
+  private feedback: "correct" | "incorrect" | "" = "";
   private levels: Record<"A" | "B", number> = {
     A: INITIAL_ATTENTION_LEVEL,
     B: INITIAL_ATTENTION_LEVEL,
@@ -106,8 +92,10 @@ export class AttentionGameAdapter implements GameAdapter {
     this.trialIndex = 0;
     this.results = [];
     this.levels = { A: INITIAL_ATTENTION_LEVEL, B: INITIAL_ATTENTION_LEVEL };
+    this.activeTrial = null;
+    this.feedback = "";
     this.paused = false;
-    this.renderTrial();
+    this.beginTrial();
   }
 
   pause(): void {
@@ -121,7 +109,9 @@ export class AttentionGameAdapter implements GameAdapter {
   resume(): void {
     if (!this.paused) return;
     this.paused = false;
-    this.renderTrial();
+    // Restart the current deterministic trial from the donor ready/fixation sequence.
+    this.activeTrial = null;
+    this.beginTrial();
   }
 
   destroy(): void {
@@ -134,6 +124,7 @@ export class AttentionGameAdapter implements GameAdapter {
     this.session = null;
     this.results = [];
     this.trialIndex = 0;
+    this.activeTrial = null;
     this.completeHandler = null;
   }
 
@@ -149,9 +140,10 @@ export class AttentionGameAdapter implements GameAdapter {
     const validTrials = this.results.length;
     const correct = this.results.filter((result) => result.correct).length;
     const accuracy = validTrials ? correct / validTrials : 0;
-    const medianRt = validTrials
-      ? [...this.results].sort((a, b) => a.rtMs - b.rtMs)[Math.floor(validTrials / 2)].rtMs
-      : 0;
+    const responseTimes = this.results
+      .map((result) => result.rtMs)
+      .filter((value): value is number => value !== null);
+    const medianRt = median(responseTimes);
     const averageLevel = mean(this.results.map((result) => result.level));
     const progressionScore = Math.max(
       0,
@@ -166,7 +158,7 @@ export class AttentionGameAdapter implements GameAdapter {
       displayMetrics: [
         { label: "Accuracy", value: `${Math.round(accuracy * 100)}%` },
         { label: "Difficulty", value: validTrials ? Number(averageLevel.toFixed(1)) : "—" },
-        { label: "Median response", value: validTrials ? `${Math.round(medianRt)} ms` : "—" },
+        { label: "Median response", value: responseTimes.length ? `${Math.round(medianRt)} ms` : "—" },
       ],
     };
   }
@@ -188,7 +180,7 @@ export class AttentionGameAdapter implements GameAdapter {
     return this.wrapper;
   }
 
-  private renderTrial(): void {
+  private beginTrial(): void {
     if (this.paused || !this.container || !this.session) return;
     if (this.trialIndex >= TRIALS_PER_SESSION) {
       this.renderComplete();
@@ -196,57 +188,99 @@ export class AttentionGameAdapter implements GameAdapter {
     }
 
     const wrapper = this.currentWrapper();
-    const level = this.levels[wrapper];
-    const condition = attentionConditionForLevel(level);
-    const trial = generateAttentionTrial({
+    this.activeLevel = this.levels[wrapper];
+    const condition = attentionConditionForLevel(this.activeLevel);
+    this.activeTrial = generateAttentionTrial({
       sessionId: this.session.id,
       trialIndex: this.trialIndex,
       wrapper,
-      // Phase-1 donor migration uses the clean ACC absolute-majority operation.
-      // Relational ACC remains a later Attention extension; BSE is excluded.
+      // The Phase-1 Attention node preserves the clean ACC absolute-majority task.
+      // Relational ACC can be added later; the BSE binding task remains excluded.
       frame: "absolute",
       ratio: condition.ratio,
       exposureMs: condition.exposureMs,
     });
+    this.feedback = "";
+    this.setStage("ready");
+    this.schedule(ATTENTION_DONOR_TIMING.readyDelayMs, () => {
+      this.setStage("fixation");
+      this.schedule(ATTENTION_DONOR_TIMING.fixationMs, () => {
+        this.setStage("stimulus");
+        this.schedule(this.activeTrial?.exposureMs ?? condition.exposureMs, () => {
+          this.setStage("mask");
+          this.schedule(ATTENTION_DONOR_TIMING.maskMs, () => this.beginResponse());
+        });
+      });
+    });
+  }
+
+  private setStage(stage: AttentionStage): void {
+    this.stage = stage;
+    this.renderStage();
+  }
+
+  private renderStage(): void {
+    if (!this.container || !this.activeTrial) return;
+    const wrapperLabel = this.activeTrial.wrapper === "A" ? "Static directions" : "Motion directions";
+    const responseButtons = this.stage === "response"
+      ? `<div class="attention-response" role="group" aria-label="Choose majority direction">
+          ${this.activeTrial.responseOptions
+            .map((relation) => `<button type="button" data-relation="${relation}">${relationLabel(relation)}</button>`)
+            .join("")}
+        </div>`
+      : "";
+    const feedback = this.stage === "feedback"
+      ? `<div class="attention-feedback is-${this.feedback}">${this.feedback === "correct" ? "Correct" : "Not this time"}</div>`
+      : "";
 
     this.container.innerHTML = `
       <div class="attention-head">
-        <span>${wrapper === "A" ? "Static directions" : "Motion directions"}</span>
+        <span>${wrapperLabel}</span>
         <span>${this.trialIndex + 1} / ${TRIALS_PER_SESSION}</span>
       </div>
-      <div class="attention-stage" aria-label="Attention stimulus">
-        ${trial.carrier === "arrow" ? arrowStimulus(trial) : flowStimulus(trial)}
+      <div class="attention-task-stage is-${this.stage}">
+        <p class="attention-hint">Find the majority direction.</p>
+        ${renderAttentionStimulus(this.activeTrial, this.stage)}
+        ${feedback}
+        ${responseButtons}
       </div>
-      <p class="attention-hint">Find the majority direction.</p>
     `;
 
-    this.clearTimer();
-    this.stageTimer = window.setTimeout(() => this.renderResponse(trial, level), trial.exposureMs);
+    if (this.stage === "response") {
+      this.container.querySelectorAll<HTMLButtonElement>("[data-relation]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const response = button.dataset.relation as AttentionRelation;
+          this.answerTrial(response);
+        }, { once: true });
+      });
+    }
   }
 
-  private renderResponse(trial: AttentionTrial, level: number): void {
-    if (!this.container || this.paused) return;
+  private beginResponse(): void {
+    if (!this.activeTrial || this.paused) return;
     this.responseStartedAt = performance.now();
-    this.container.innerHTML = `
-      <div class="attention-head"><span>Respond</span><span>${this.trialIndex + 1} / ${TRIALS_PER_SESSION}</span></div>
-      <div class="attention-response" role="group" aria-label="Choose majority direction">
-        ${trial.responseOptions.map((relation) => `<button type="button" data-relation="${relation}">${relationLabel(relation)}</button>`).join("")}
-      </div>
-    `;
-    this.container.querySelectorAll<HTMLButtonElement>("[data-relation]").forEach((button) => {
-      button.addEventListener("click", () => {
-        const response = button.dataset.relation as AttentionRelation;
-        const correct = response === trial.correctResponse;
-        this.results.push({
-          correct,
-          rtMs: performance.now() - this.responseStartedAt,
-          wrapper: trial.wrapper,
-          level,
-        });
-        this.levels[trial.wrapper] = nextAttentionLevel(level, correct);
-        this.trialIndex += 1;
-        this.stageTimer = window.setTimeout(() => this.renderTrial(), 180);
-      }, { once: true });
+    this.setStage("response");
+    this.schedule(ATTENTION_DONOR_TIMING.responseTimeoutMs, () => this.answerTrial(null));
+  }
+
+  private answerTrial(response: AttentionRelation | null): void {
+    if (this.stage !== "response" || !this.activeTrial) return;
+    this.clearTimer();
+    const responseAt = performance.now();
+    const correct = response === this.activeTrial.correctResponse;
+    this.results.push({
+      correct,
+      rtMs: response === null ? null : responseAt - this.responseStartedAt,
+      wrapper: this.activeTrial.wrapper,
+      level: this.activeLevel,
+    });
+    this.levels[this.activeTrial.wrapper] = nextAttentionLevel(this.activeLevel, correct);
+    this.feedback = correct ? "correct" : "incorrect";
+    this.setStage("feedback");
+    this.schedule(ATTENTION_DONOR_TIMING.feedbackMs, () => {
+      this.trialIndex += 1;
+      this.activeTrial = null;
+      this.beginTrial();
     });
   }
 
@@ -260,6 +294,11 @@ export class AttentionGameAdapter implements GameAdapter {
       </div>
     `;
     this.completeHandler?.(summary);
+  }
+
+  private schedule(delayMs: number, action: () => void): void {
+    this.clearTimer();
+    this.stageTimer = window.setTimeout(action, delayMs);
   }
 
   private clearTimer(): void {
