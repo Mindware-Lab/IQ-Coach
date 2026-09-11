@@ -9,7 +9,7 @@ body,
   width: 100%;
   height: 100%;
   margin: 0;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 body {
@@ -66,6 +66,7 @@ li { line-height: 1.45; margin-bottom: 0.35rem; }
 blockquote { margin: 0 0 0.8rem; padding-left: 0.8rem; border-left: 4px solid var(--iqm-cyan); font-size: 0.98rem; font-weight: 760; }
 
 .app-shell {
+  --screen-gutter: 10px;
   width: min(760px, calc(100vw - 64px), calc(100dvh - 64px));
   height: min(760px, calc(100vw - 64px), calc(100dvh - 64px));
   min-width: 0;
@@ -107,23 +108,16 @@ blockquote { margin: 0 0 0.8rem; padding-left: 0.8rem; border-left: 4px solid va
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
-  overflow: auto;
-  overflow-x: hidden;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(39, 100, 183, 0.25) transparent;
-  padding: 14px;
-}
-.app-shell > main::-webkit-scrollbar { width: 7px; }
-.app-shell > main::-webkit-scrollbar-track { background: transparent; }
-.app-shell > main::-webkit-scrollbar-thumb {
-  border: 2px solid transparent;
-  border-radius: 999px;
-  background: rgba(39, 100, 183, 0.22);
-  background-clip: padding-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--screen-gutter);
+  overflow: hidden;
+  padding: var(--screen-gutter);
 }
 
 .app-shell > main > * {
+  min-width: 0;
+  min-height: 0;
   animation: iqm-view-in 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
@@ -172,8 +166,49 @@ blockquote { margin: 0 0 0.8rem; padding-left: 0.8rem; border-left: 4px solid va
     0 10px 26px rgba(24, 34, 48, 0.07),
     inset 0 1px 0 rgba(255,255,255,0.92);
   padding: 16px;
-  margin-bottom: 12px;
+  margin: 0;
 }
+
+.screen-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.screen-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.screen-footer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 10px;
+  margin-top: auto;
+}
+
+.screen-pager {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: var(--iqm-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+.screen-pager-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #dbe7f0;
+}
+.screen-pager-dot.is-active { background: var(--iqm-blue); }
 
 .notice {
   flex: 0 0 auto;
@@ -261,9 +296,10 @@ select:focus-visible { outline: 3px solid rgba(34, 170, 255, 0.34); outline-offs
 
 @media (max-width: 720px) {
   html,
-  body { padding: 0; overflow-x: hidden; }
+  body { padding: 0; overflow: hidden; }
 
   .app-shell {
+    --screen-gutter: 8px;
     width: 100vw;
     max-width: 100vw;
     height: 100dvh;
@@ -281,20 +317,19 @@ select:focus-visible { outline: 3px solid rgba(34, 170, 255, 0.34); outline-offs
   .topbar h1 { font-size: clamp(1.15rem, 5vw, 1.45rem); }
   .topbar .lede { font-size: 0.7rem; }
   .app-shell > main {
-    padding: 10px;
-    padding-left: max(10px, env(safe-area-inset-left));
-    padding-right: max(10px, env(safe-area-inset-right));
-    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    padding-left: max(var(--screen-gutter), env(safe-area-inset-left));
+    padding-right: max(var(--screen-gutter), env(safe-area-inset-right));
+    padding-bottom: max(var(--screen-gutter), env(safe-area-inset-bottom));
   }
-  .panel { padding: 13px; margin-bottom: 9px; border-radius: 16px; }
+  .panel { padding: 12px; border-radius: 16px; }
   .notice { margin: 7px 10px 0; }
 }
 
 @media (max-width: 480px) {
-  .topbar { grid-template-columns: 1fr; }
-  .phase-pill,
-  .account-chip { justify-self: start; }
   .topbar .lede { display: none; }
+  .phase-pill,
+  .account-chip { align-self: start; }
+  .screen-footer { padding-top: 7px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
