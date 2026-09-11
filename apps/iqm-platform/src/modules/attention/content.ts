@@ -1,4 +1,4 @@
-import type { MissionTemplate } from "../../types/mission";
+import type { MissionTemplate, NicheChangeType } from "../../types/mission";
 import type { StrategyConfig } from "../../types/node";
 
 export const ATTENTION_STRATEGY: StrategyConfig = {
@@ -73,7 +73,7 @@ export const ATTENTION_MISSIONS: MissionTemplate[] = [
   },
 ];
 
-export const ATTENTION_NICHE_EXAMPLES = {
+export const ATTENTION_NICHE_EXAMPLES: Record<NicheChangeType, string[]> = {
   cue: ["Put the current decision question at the top of the document or task view."],
   workflow: ["Write the target question before opening supporting sources."],
   "protected-time": ["Create a short interruption-free evidence-triage block."],
@@ -83,4 +83,4 @@ export const ATTENTION_NICHE_EXAMPLES = {
   feedback: ["After the decision, check whether the evidence you prioritised was actually diagnostic."],
   "tool-interface": ["Use highlighting or a two-column evidence/not-evidence layout."],
   none: ["No environment change needed for this mission."],
-} as const;
+};
