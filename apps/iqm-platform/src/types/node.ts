@@ -35,6 +35,13 @@ export interface WrapperConfig {
   instructions: string;
 }
 
+export interface NodeCredibilityMetadata {
+  protocolId?: string;
+  protocolVersion?: string;
+  evidenceStateReference?: string;
+  claimsProfileReference?: string;
+}
+
 export interface IQMNodeModule {
   id: NodeId;
   title: string;
@@ -52,6 +59,7 @@ export interface IQMNodeModule {
   missions: MissionTemplate[];
   nicheExamples?: Partial<Record<NicheChangeType, string[]>>;
   gTrackKeys?: string[];
+  credibility?: NodeCredibilityMetadata;
   entitlement: {
     productKey: string;
   };
