@@ -1,6 +1,7 @@
 import "./theme/tokens.css";
 import "./theme/base.css";
 import "./theme/dashboard.css";
+import "./theme/credibility.css";
 import { bootstrap } from "./app/bootstrap";
 import { attentionModule } from "./modules/attention/module";
 import { generativeSearchModule } from "./modules/generative-search/module";
