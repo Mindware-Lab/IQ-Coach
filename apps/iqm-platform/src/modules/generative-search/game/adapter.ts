@@ -28,6 +28,15 @@ function hashSeed(input: string): number {
   return hash >>> 0;
 }
 
+function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 function wrapperForRound(
   mode: SessionConfig["wrapperMode"],
   seed: string,
@@ -45,13 +54,13 @@ function formatFamily(family: GenerativePrompt["family"]): string {
 
 function promptMarkup(prompt: GenerativePrompt, wrapper: "A" | "B"): string {
   if (wrapper === "A") {
-    return `<div class="generative-prose-prompt"><p>${prompt.prose}</p></div>`;
+    return `<div class="generative-prose-prompt"><p>${escapeHtml(prompt.prose)}</p></div>`;
   }
   return `<div class="generative-board">
-    <div class="generative-board-card"><span>Situation</span><p>${prompt.situation}</p></div>
-    <div class="generative-board-card"><span>Goal</span><p>${prompt.goal}</p></div>
-    ${prompt.constraint ? `<div class="generative-board-card"><span>Constraint</span><p>${prompt.constraint}</p></div>` : ""}
-    ${prompt.switchCue ? `<div class="generative-board-card"><span>Later cue</span><p>${prompt.switchCue.cue}</p></div>` : ""}
+    <div class="generative-board-card"><span>Situation</span><p>${escapeHtml(prompt.situation)}</p></div>
+    <div class="generative-board-card"><span>Goal</span><p>${escapeHtml(prompt.goal)}</p></div>
+    ${prompt.constraint ? `<div class="generative-board-card"><span>Constraint</span><p>${escapeHtml(prompt.constraint)}</p></div>` : ""}
+    ${prompt.switchCue ? `<div class="generative-board-card"><span>Later cue</span><p>${escapeHtml(prompt.switchCue.cue)}</p></div>` : ""}
   </div>`;
 }
 
@@ -199,7 +208,7 @@ export class GenerativeSearchGameAdapter implements GameAdapter {
         <div><strong>${this.roundIndex + 1} / ${this.prompts.length}</strong><span id="generative-countdown">90s</span></div>
       </div>
       ${promptMarkup(prompt, wrapper)}
-      ${switchReady ? `<div class="generative-switch-cue"><strong>Switch</strong><span>${prompt.switchCue?.cue}</span></div>` : ""}
+      ${switchReady ? `<div class="generative-switch-cue"><strong>Switch</strong><span>${escapeHtml(prompt.switchCue?.cue)}</span></div>` : ""}
       <div class="generative-entry">
         <label for="generative-response">Add one distinct alternative</label>
         <div class="generative-input-row">
@@ -207,7 +216,7 @@ export class GenerativeSearchGameAdapter implements GameAdapter {
           <button type="button" class="platform-button" data-gen-action="add">Add</button>
         </div>
         <div class="generative-response-meta"><span>${responses.length} responses</span><span>Semantic originality is not scored in v1.</span></div>
-        ${responses.length ? `<ol class="generative-response-list">${responses.slice(-5).map((response) => `<li>${response.text}</li>`).join("")}</ol>` : ""}
+        ${responses.length ? `<ol class="generative-response-list">${responses.slice(-3).map((response) => `<li>${escapeHtml(response.text)}</li>`).join("")}</ol>` : ""}
       </div>
       <div class="generative-round-actions"><button type="button" class="text-button" data-gen-action="finish">I think I’m done</button></div>
     `;
@@ -286,7 +295,7 @@ export class GenerativeSearchGameAdapter implements GameAdapter {
     if (!this.container) return;
     this.clearInterval();
     const summary = this.getTrainingSummary();
-    this.container.innerHTML = `<div class="generative-message"><strong>Session complete</strong><span>${summary.displayMetrics?.map((metric) => `${metric.label}: ${metric.value}`).join(" · ")}</span><small>Component profile only — no omnibus creativity score.</small></div>`;
+    this.container.innerHTML = `<div class="generative-message"><strong>Session complete</strong><span>${summary.displayMetrics?.map((metric) => `${escapeHtml(metric.label)}: ${escapeHtml(metric.value)}`).join(" · ")}</span><small>Component profile only — no omnibus creativity score.</small></div>`;
     this.completeHandler?.(summary);
   }
 
