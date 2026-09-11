@@ -1,5 +1,7 @@
 .attention-game {
-  min-height: 430px;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
   border: 1px solid var(--iqm-border);
   border-radius: 18px;
   background: var(--iqm-surface);
@@ -7,101 +9,164 @@
 }
 
 .attention-head {
+  min-width: 0;
   display: flex;
   justify-content: space-between;
-  gap: 16px;
-  padding: 12px 16px;
+  gap: 12px;
+  padding: 9px 14px;
   color: var(--iqm-muted);
-  font-size: 0.86rem;
-  font-weight: 700;
+  font-size: 0.78rem;
+  font-weight: 800;
   border-bottom: 1px solid var(--iqm-border);
+  background: linear-gradient(90deg, rgba(34, 170, 255, 0.08), rgba(204, 255, 102, 0.08));
 }
 
-.attention-stage {
-  position: relative;
-  width: min(72vw, 560px);
-  aspect-ratio: 1;
-  max-height: 340px;
-  margin: 18px auto 8px;
-  border-radius: 20px;
-  background: radial-gradient(circle at center, #ffffff 0%, #f5faff 76%, #eef6fb 100%);
-  overflow: hidden;
-}
-
-.attention-arrow {
-  position: absolute;
-  font-size: clamp(1.65rem, 4vw, 2.5rem);
-  line-height: 1;
-  color: var(--iqm-blue);
-  transform-origin: center;
-}
-
-.attention-aperture {
-  position: absolute;
-  width: 18%;
-  aspect-ratio: 1;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  border: 1px solid rgba(39, 100, 183, 0.16);
-  overflow: hidden;
-}
-
-.attention-flow-dot {
-  position: absolute;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--iqm-blue);
-  opacity: 0.72;
-  animation: attention-flow 820ms linear infinite;
-}
-
-@keyframes attention-flow {
-  from { transform: translate(calc(var(--dx) * -0.5), calc(var(--dy) * -0.5)); }
-  to { transform: translate(calc(var(--dx) * 0.5), calc(var(--dy) * 0.5)); }
+.attention-task-stage {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 7px;
+  padding: 8px 12px 14px;
+  overflow-x: hidden;
 }
 
 .attention-hint {
-  text-align: center;
+  margin: 0;
+  min-height: 22px;
   color: var(--iqm-muted);
-  font-weight: 700;
-  margin: 0 0 18px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+/* Donor CCC/MFT-M stimulus frame: 100×100 SVG with the same visual envelope. */
+.stimulus-wrap {
+  width: min(64vw, 41vmin, 305px);
+  max-width: 100%;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  margin: 0 auto;
+}
+
+.stimulus-wrap.is-flow {
+  border-radius: 0;
+  background:
+    radial-gradient(circle at center, rgba(34, 170, 255, 0.06), transparent 46%),
+    #fff;
+}
+
+.stimulus-svg {
+  width: 100%;
+  height: 100%;
+  color: var(--iqm-cyan);
+  overflow: visible;
+}
+
+.orbit-line {
+  fill: none;
+  stroke: rgba(39, 100, 183, 0.14);
+  stroke-width: 0.8;
+  stroke-dasharray: 2.2 2.2;
+}
+
+.fixation {
+  fill: none;
+  stroke: var(--iqm-ink);
+  stroke-width: 0.8;
+  stroke-linecap: round;
+}
+
+.stimulus-masks {
+  fill: currentColor;
+  stroke: none;
+}
+
+.optic-apertures {
+  transform-origin: 50px 50px;
+}
+
+.optic-aperture-bg {
+  fill: rgba(255, 255, 255, 0.92);
+  stroke: rgba(156, 163, 175, 0.2);
+  stroke-width: 0.4;
+}
+
+.optic-dot {
+  stroke: none;
+}
+
+.optic-dot-group {
+  transform-origin: 50px 50px;
+}
+
+.optic-mask-field {
+  color: #16215c;
+}
+
+.optic-mask-dot {
+  fill: currentColor;
+  stroke: none;
 }
 
 .attention-response {
-  min-height: 360px;
+  width: min(100%, 340px);
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 160px));
-  justify-content: center;
-  align-content: center;
-  gap: 16px;
-  padding: 32px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 auto;
 }
 
-.attention-response button,
-.platform-button {
+.attention-response button {
+  min-width: 0;
   border: 0;
   border-radius: 14px;
-  padding: 14px 18px;
-  background: var(--iqm-blue);
+  padding: 11px 14px;
+  background: linear-gradient(180deg, var(--iqm-cyan), var(--iqm-blue));
   color: #fff;
-  font-weight: 800;
+  font-weight: 850;
   cursor: pointer;
+  box-shadow: 0 7px 16px rgba(39, 100, 183, 0.16);
 }
 
-.attention-response button:hover,
-.platform-button:hover { filter: brightness(1.06); }
+.attention-response button:hover { filter: brightness(1.06); }
+
+.attention-feedback {
+  min-height: 24px;
+  font-size: 0.86rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.attention-feedback.is-correct { color: #4d8800; }
+.attention-feedback.is-incorrect { color: var(--iqm-error); }
 
 .attention-message {
-  min-height: 360px;
+  min-height: 320px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 28px;
+  padding: 24px;
   text-align: center;
 }
 
-.attention-message strong { font-size: 1.35rem; }
+.attention-message strong { font-size: 1.25rem; }
 .attention-message span { color: var(--iqm-muted); }
+
+@media (max-width: 720px) {
+  .attention-game { border-radius: 14px; }
+  .attention-task-stage { padding: 6px 8px 10px; }
+  .stimulus-wrap { width: min(76vw, 330px, 43dvh); }
+  .attention-response { width: min(100%, 300px); gap: 8px; }
+  .attention-response button { padding: 10px 11px; }
+}
+
+@media (max-width: 430px) {
+  .attention-head { padding: 7px 9px; font-size: 0.7rem; }
+  .attention-hint { font-size: 0.74rem; }
+  .stimulus-wrap { width: min(78vw, 285px, 41dvh); }
+}
