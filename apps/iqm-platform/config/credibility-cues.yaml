@@ -1,0 +1,311 @@
+schema_version: "1.0"
+system_id: iqm-credibility-cues-v1
+owner: shared_platform
+applies_to:
+  - attention
+  - relational-memory
+  - binding-memory
+  - predictive-mapping
+  - generative-search
+  - reasoning
+
+visual_contract:
+  icon_view_box: "0 0 24 24"
+  stroke_width: 1.7
+  chip:
+    height_px: 28
+    icon_px: 14
+    padding_y_px: 5
+    padding_x_px: 9
+    gap_px: 6
+    border_radius_px: 999
+    font_size_rem: 0.65
+    font_weight: 850
+    letter_spacing_em: 0.06
+    text_transform: uppercase
+  colour_roles:
+    protocol: "var(--iqm-cyan)"
+    evidence: "var(--iqm-cyan)"
+    experimental: "var(--iqm-violet)"
+    measurement: "var(--iqm-blue)"
+    confirmed: "var(--iqm-lime-readable)"
+    neutral: "var(--iqm-muted)"
+  lime_rule: >-
+    Lime is reserved for a genuinely passed, completed or verified condition and
+    must not be used merely for emphasis.
+
+surface_limits:
+  home_network: 1
+  node_home: 2
+  instructions_practice: 1
+  active_training: 1
+  progress: 2
+  g_track: 1
+  account_data: 1
+  product_page_above_fold: 2
+  checkout: 2
+
+forbidden_labels_without_explicit_authority:
+  - SCIENCE BACKED
+  - SCIENTIFICALLY PROVEN
+  - APPROVED
+  - CERTIFIED
+  - VERIFIED
+  - SECURE
+  - CLINICALLY PROVEN
+  - TRANSFER PROVEN
+  - IQ IMPROVEMENT
+
+forbidden_surface_combinations:
+  active_training:
+    - guarantee
+    - reviews
+  progress:
+    - guarantee
+    - reviews
+  g_track:
+    - guarantee
+    - reviews
+
+progressive_disclosure:
+  required: true
+  fields:
+    - meaning
+    - provenance_reference
+    - does_not_mean
+    - reviewed_on
+    - review_due
+    - destination
+
+cues:
+  protocol:
+    icon: "/credibility/protocol.svg"
+    family: epistemic_competence
+    colour_role: protocol
+    label_template: "IQM PROTOCOL · v{protocol_version}"
+    allowed_surfaces:
+      - node_home
+      - instructions_practice
+      - product_page_above_fold
+    eligibility:
+      required_fields:
+        - protocol_id
+        - protocol_version
+    disclosure:
+      meaning: "This node is delivered through a versioned, maintained IQ Mindware protocol."
+      does_not_mean:
+        - "The protocol has been independently validated."
+        - "The protocol improves IQ or far transfer."
+
+  evidence:
+    icon: "/credibility/evidence.svg"
+    family: epistemic_competence
+    colour_role: evidence
+    allowed_surfaces:
+      - node_home
+      - product_page_above_fold
+      - evidence_details
+    state_source: claims_profile
+    states:
+      EXPERIMENTAL_PROTOCOL:
+        label: "EXPERIMENTAL PROTOCOL"
+        colour_role: experimental
+        eligibility:
+          claims_profile.evidence_state: EXPERIMENTAL_PROTOCOL
+        disclosure:
+          meaning: "The implementation is deliberately engineered and instrumented but does not yet meet the threshold for a stronger evidence status."
+          does_not_mean:
+            - "Independently validated intervention."
+            - "Established far transfer."
+      PUBLISHED_ANCHOR:
+        label: "PUBLISHED ANCHOR"
+        colour_role: evidence
+        eligibility:
+          claims_profile.evidence_state: PUBLISHED_ANCHOR
+          claims_profile.reference_required: true
+        disclosure:
+          meaning: "Published research anchors the target construct, task family or mechanism."
+          does_not_mean:
+            - "The IQ Mindware implementation itself has been independently validated."
+      PILOT_EVIDENCE:
+        label: "PILOT EVIDENCE"
+        colour_role: evidence
+        eligibility:
+          claims_profile.evidence_state: PILOT_EVIDENCE
+          claims_profile.reference_required: true
+          governance_reference_required: true
+        disclosure:
+          meaning: "Governed pilot evidence exists for the specific implementation."
+          does_not_mean:
+            - "Independent validation."
+            - "A confirmatory efficacy claim."
+      INDEPENDENT_VALIDATION:
+        label: "INDEPENDENT VALIDATION"
+        colour_role: confirmed
+        eligibility:
+          claims_profile.evidence_state: INDEPENDENT_VALIDATION
+          claims_profile.reference_required: true
+          explicit_authorisation_required: true
+        disclosure:
+          meaning: "A current evidence/claims reference explicitly supports independent validation for the scoped claim."
+          does_not_mean:
+            - "All product claims are independently validated."
+
+  calibration:
+    icon: "/credibility/calibration.svg"
+    family: process_quality
+    colour_role: measurement
+    allowed_surfaces:
+      - instructions_practice
+      - active_training
+      - progress
+    states:
+      CALIBRATING:
+        label: "CALIBRATING"
+        colour_role: measurement
+      TIMING_GOOD:
+        label: "TIMING · GOOD"
+        colour_role: confirmed
+        eligibility:
+          timing_quality: good
+      TIMING_LIMITED:
+        label: "TIMING · LIMITED"
+        colour_role: neutral
+        eligibility:
+          timing_quality: limited
+      DATA_QUALITY_GOOD:
+        label: "DATA QUALITY · GOOD"
+        colour_role: confirmed
+        eligibility:
+          data_quality: good
+      DATA_QUALITY_LIMITED:
+        label: "DATA QUALITY · LIMITED"
+        colour_role: neutral
+        eligibility:
+          data_quality: limited
+    disclosure:
+      meaning: "This cue reports a measured calibration or data-quality state."
+      does_not_mean:
+        - "Scientific validity of the intervention."
+
+  transfer:
+    icon: "/credibility/transfer.svg"
+    family: process_quality
+    colour_role: measurement
+    allowed_surfaces:
+      - active_training
+      - progress
+    states:
+      FORMAT_CHANGE:
+        label: "FORMAT CHANGE"
+      RECOVERY:
+        label: "RECOVERY"
+      RETURN_CHECK:
+        label: "RETURN CHECK"
+      DELAYED_RECHECK:
+        label: "DELAYED RE-CHECK"
+    disclosure:
+      meaning: "The protocol is changing or re-checking the task representation while tracking the underlying operation."
+      does_not_mean:
+        - "Far transfer has been demonstrated."
+        - "Performance generalises outside the trained construct."
+
+  independent_check:
+    icon: "/credibility/independent-check.svg"
+    family: measurement_integrity
+    colour_role: measurement
+    label: "INDEPENDENT CHECK"
+    allowed_surfaces:
+      - g_track
+    eligibility:
+      measurement_source: independent_from_training
+    disclosure:
+      meaning: "The displayed assessment is calculated separately from training performance."
+      does_not_mean:
+        - "The training caused any observed change."
+
+  privacy:
+    icon: "/credibility/privacy.svg"
+    family: safety_integrity
+    colour_role: protocol
+    label: "DATA CONTROL"
+    allowed_surfaces:
+      - account_data
+      - checkout
+    eligibility:
+      data_controls_available: true
+    disclosure:
+      meaning: "The user can inspect storage, sync, research-use, sharing, export and deletion status."
+      does_not_mean:
+        - "Certified secure."
+        - "No security risk exists."
+    required_status_fields:
+      - storage
+      - sync
+      - research_use
+      - external_sharing
+      - export
+      - deletion
+
+  guarantee:
+    icon: "/credibility/guarantee.svg"
+    family: commercial_risk_reduction
+    colour_role: confirmed
+    label_template: "{guarantee_days}-DAY SATISFACTION GUARANTEE"
+    allowed_surfaces:
+      - product_page_above_fold
+      - checkout
+    eligibility:
+      guarantee.enabled: true
+      guarantee.days_required: true
+      guarantee.terms_reference_required: true
+    disclosure:
+      meaning: "The seller offers the displayed risk-reversal policy under the linked terms."
+      does_not_mean:
+        - "Scientific effectiveness is guaranteed."
+
+  reviews:
+    icon: "/credibility/reviews.svg"
+    family: social_proof
+    colour_role: protocol
+    label_template_verified: "★ {rating_1dp} · {review_count} VERIFIED CUSTOMERS"
+    label_template_unverified: "★ {rating_1dp} · {review_count} CUSTOMER REVIEWS"
+    allowed_surfaces:
+      - product_page_above_fold
+      - checkout
+    display_rules:
+      rating_precision_decimal_places: 1
+      require_review_count: true
+      min_display_count: 10
+      verified_word_requires_verified_purchase_or_equivalent: true
+    eligibility:
+      reviews.source_reference_required: true
+      reviews.count_at_least: 10
+    disclosure:
+      meaning: "This is a summary of genuine customer review data from the linked source."
+      does_not_mean:
+        - "Scientific evidence."
+        - "Representative outcome evidence."
+
+inheritance:
+  platform_owns:
+    - cue_ids
+    - svg_assets
+    - state_labels
+    - colour_semantics
+    - placement_limits
+    - claims_boundaries
+    - progressive_disclosure
+  node_may_supply:
+    - protocol_id
+    - protocol_version
+    - evidence_state_reference
+    - claims_profile_reference
+    - process_state
+    - timing_quality
+    - data_quality
+  node_must_not_override:
+    - cue_icon
+    - canonical_label_semantics
+    - colour_role_semantics
+    - evidence_upgrade_rules
