@@ -1,0 +1,14 @@
+:root {
+  --iqm-cyan: #22aaff;
+  --iqm-cyan-dark: #0086e6;
+  --iqm-blue: #2764b7;
+  --iqm-lime: #ccff66;
+  --iqm-success: #83cf16;
+  --iqm-error: #e94b55;
+  --iqm-ink: #0d1730;
+  --iqm-muted: #66788d;
+  --iqm-soft: #f4f9fd;
+  --iqm-border: #dce8f1;
+  --iqm-surface: #ffffff;
+  --iqm-shadow: 0 16px 42px rgba(13, 23, 48, 0.09);
+}

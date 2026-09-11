@@ -1,0 +1,18 @@
+.today-panel { border-left: 5px solid var(--iqm-cyan); }
+.section-heading { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; }
+.boundary-note { max-width: 430px; font-size: 0.9rem; }
+.node-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+.node-card { display: flex; gap: 12px; min-height: 128px; padding: 16px; border: 1px solid var(--iqm-border); border-radius: 16px; background: linear-gradient(180deg, #fff 0%, #fbfdff 100%); }
+.node-card p { color: var(--iqm-muted); font-size: 0.9rem; margin-bottom: 0.75rem; }
+.node-dot { width: 14px; height: 14px; flex: 0 0 14px; margin-top: 4px; border-radius: 50%; border: 2px solid var(--iqm-cyan); background: transparent; }
+.node-state { display: inline-block; color: var(--iqm-muted); font-size: 0.78rem; font-weight: 700; }
+.gtrack-panel { border-top: 4px solid var(--iqm-lime); }
+
+@media (max-width: 900px) {
+  .node-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 620px) {
+  .section-heading { flex-direction: column; }
+  .node-grid { grid-template-columns: 1fr; }
+}
