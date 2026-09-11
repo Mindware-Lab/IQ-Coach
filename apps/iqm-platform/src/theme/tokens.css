@@ -3,6 +3,11 @@
   --iqm-cyan-dark: #0086e6;
   --iqm-blue: #2764b7;
   --iqm-lime: #ccff66;
+  --iqm-lime-readable: #79b80e;
+  --iqm-amber: #ffb84d;
+  --iqm-coral: #ff6f91;
+  --iqm-violet: #7b61ff;
+  --iqm-teal: #18b7a0;
   --iqm-success: #83cf16;
   --iqm-error: #e94b55;
   --iqm-ink: #0d1730;
@@ -11,4 +16,12 @@
   --iqm-border: #dce8f1;
   --iqm-surface: #ffffff;
   --iqm-shadow: 0 16px 42px rgba(13, 23, 48, 0.09);
+  --iqm-shadow-soft: 0 8px 24px rgba(24, 34, 48, 0.08);
+
+  --node-attention: #22aaff;
+  --node-relational: #7b61ff;
+  --node-binding: #ff6f91;
+  --node-predictive: #18b7a0;
+  --node-generative: #ffb84d;
+  --node-reasoning: #2764b7;
 }
