@@ -1,6 +1,8 @@
 import "./theme/tokens.css";
 import "./theme/studio.css";
 import "./theme/studio-art.css";
+import "./theme/studio-typography.css";
+import { mountStudioTypography } from "./app/studioTypography";
 import { bootstrapStudio } from "./app/studio";
 import { attentionModule } from "./modules/attention/module";
 import { generativeSearchModule } from "./modules/generative-search/module";
@@ -12,6 +14,7 @@ registerNodeModule(generativeSearchModule);
 const root = document.querySelector<HTMLElement>("#app");
 if (!root) throw new Error("Missing #app root element.");
 
+const stopTypography = mountStudioTypography(root);
 let dispose: (() => void) | undefined;
 void bootstrapStudio(root).then(cleanup => { dispose = cleanup; }).catch(error => {
   console.error("Synergy IQ could not start", error);
@@ -24,4 +27,4 @@ void bootstrapStudio(root).then(cleanup => { dispose = cleanup; }).catch(error =
   panel.append(message);
   root.replaceChildren(panel);
 });
-if (import.meta.hot) import.meta.hot.dispose(() => dispose?.());
+if (import.meta.hot) import.meta.hot.dispose(() => { stopTypography(); dispose?.(); });
