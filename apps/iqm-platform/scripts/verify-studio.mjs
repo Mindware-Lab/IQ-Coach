@@ -60,6 +60,38 @@ async function layout(name, shots=true) {
   }
   await page.setViewportSize({width:1200,height:900});
 }
+// Controls stay in one location throughout a trial, including pause/feedback.
+const controlPositions = new Map();
+const checkedStages = new Set();
+async function responseLayout(stage, enabled) {
+  for (const [width,height] of sizes) {
+    await page.setViewportSize({width,height});
+    const result = await page.evaluate(() => {
+      const controls=[...document.querySelectorAll('.attention-response [data-relation]')];
+      const host=document.querySelector('#studio-game-host').getBoundingClientRect();
+      const feedback=document.querySelector('.attention-feedback')?.getBoundingClientRect();
+      return controls.map(button=>{
+        const r=button.getBoundingClientRect(), style=getComputedStyle(button);
+        const topElement=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);
+        return {left:r.left,top:r.top,width:r.width,height:r.height,disabled:button.disabled,
+          visible:style.visibility!=='hidden'&&style.display!=='none'&&Number(style.opacity)>0,
+          fits:r.left>=host.left-1&&r.right<=host.right+1&&r.top>=host.top-1&&r.bottom<=host.bottom+1&&r.bottom<=innerHeight+1,
+          unobscured:topElement===button||button.contains(topElement),
+          feedbackClear:!feedback||feedback.bottom<=r.top};
+      });
+    });
+    check(`${stage}: both response controls present ${width}x${height}`,result.length===2);
+    check(`${stage}: both response controls visible/reachable ${width}x${height}`,result.every(b=>b.visible&&b.fits&&b.unobscured&&b.height>=44));
+    check(`${stage}: response availability follows timing ${width}x${height}`,result.every(b=>b.disabled===!enabled));
+    check(`${stage}: feedback does not cover responses ${width}x${height}`,result.every(b=>b.feedbackClear));
+    const key=`${width}x${height}`,old=controlPositions.get(key);
+    if(old)check(`${stage}: no moving response targets ${key}`,result.every((b,i)=>['left','top','width','height'].every(k=>Math.abs(b[k]-old[i][k])<1)));
+    else controlPositions.set(key,result);
+    if(stage==='stimulus'&&width===1200)await page.locator('.studio').screenshot({path:join(output,'desktop-persistent-controls.png')});
+    if(stage==='stimulus'&&width===390)await page.screenshot({path:join(output,'mobile-persistent-controls.png')});
+  }
+  await page.setViewportSize({width:1200,height:900});
+}
 try {
   await page.goto(origin+'/?attention-qa=1'); await screen('welcome');
   await page.evaluate(async()=>{const image=new Image();image.src='/art/signal-waves.svg';await image.decode();});
@@ -71,13 +103,32 @@ try {
   await page.clock.install({time}); await page.clock.pauseAt(time);
   await action('start'); await screen('training');
   check('global navigation hidden during training', await page.locator('.st-nav').count()===0);
+  await responseLayout('ready',false);checkedStages.add('ready');
   await action('pause');check('task pauses', await page.getByText('Paused',{exact:true}).isVisible());
+  await responseLayout('paused',false);
   await action('pause');
-  let iterations=0, responses=0, captured=false;
+  let iterations=0, responses=0, captured=false, checkedPauseDuringResponse=false;
   while(await page.locator('[data-screen="training"]').count()) {
     assert(++iterations<2000,'QA session must finish');
-    const response=page.locator('[data-relation]');
+    const stage=await page.locator('.attention-task-stage').getAttribute('class');
+    const name=stage.split('is-')[1];
+    if(!checkedStages.has(name)) {
+      await responseLayout(name,name==='response');checkedStages.add(name);
+      if(name!=='response') {
+        await page.locator('[data-relation]').first().evaluate(el=>el.click());
+        await page.keyboard.press('f');
+        check(`${name}: premature/repeated responses ignored`,await page.locator('.attention-task-stage').getAttribute('class')===stage);
+      }
+    }
+    const response=page.locator('[data-relation]:enabled');
     if(await response.count()) {
+      if(!checkedPauseDuringResponse) {
+        checkedPauseDuringResponse=true;
+        await action('pause');await responseLayout('paused-from-response',false);
+        await page.keyboard.press('f');await page.keyboard.press('j');await page.clock.runFor(100);
+        check('paused response window rejects keyboard input',await page.locator('.attention-task-stage.is-paused').count()===1);
+        await action('pause');continue;
+      }
       await page.clock.runFor(200);
       await response.nth(responses++%2).click();
     } else {
@@ -89,6 +140,7 @@ try {
   }
   await screen('result');
   check('completed actual QA runtime',responses===24);
+  check('all trial stages retain response controls',['ready','fixation','stimulus','mask','response','feedback'].every(s=>checkedStages.has(s)));
   const receipts=await page.evaluate(()=>JSON.parse(localStorage.getItem('iqm-platform:studio:v1:qa-preview')).receipts);
   check('one real session receipt, no invented metric fixture', receipts.length===1 && receipts[0].summary.validTrials===24);
   await layout('result');
