@@ -1,39 +1,36 @@
 # IQ Mindware shared B2C platform
 
-This directory implements the Phase-1 shared node platform defined by:
+The shared platform implements `specs/IQM_B2C_NODE_PLATFORM_SPEC_v1.md` and the guided learning contract in `specs/IQM_ADAPTIVE_JOURNEY_SPEC_v0.1.md`.
 
-`specs/IQM_B2C_NODE_PLATFORM_SPEC_v1.md`
+## Illustrated Synergy IQ studio
 
-Production target:
+The active entry point is now `src/app/studio.ts`, imported by `src/main.ts`. The earlier `bootstrap.ts` is retained for history but is not the active UI.
 
-```text
-one platform shell
-+ seven interchangeable node modules
-+ shared A → B → A-return/reopen → A/B progression
-+ shared Capacity → Strategy → Niche machinery
-+ shared missions/check-ins
-+ shared entitlement, dashboard and G Track surfaces
-```
+The approved screen plan is `../../specs/SYNERGY_IQ_VISUAL_SCREEN_PLAN_v1.md`.
 
-## Current implementation slice
+One application has two deliberate compositions:
 
-The current scaffold contains:
+- a centred 760 × 760 reference square on desktop, constrained proportionally by available space;
+- a full-height portrait interface on mobile, with safe-area support and independently composed artwork, content and actions.
 
-- canonical TypeScript contracts for nodes, games, missions, progression and guided journeys;
-- a deterministic Phase-1 wrapper progression engine;
-- a seven-node network map aligned with the public Synergy IQ architecture;
-- first-time adaptive-intelligence orientation;
-- chapter-level narrative guidance and event-based APR explanations;
-- portable strategy teaching;
-- Reality Missions with check-ins and banked reusable rules;
-- mission/check-in follow-up logic;
-- a human-first → AI review → fresh unaided Attention niche challenge;
-- an entitlement helper;
-- a module registry that refuses duplicate node registrations;
-- IQ Mindware theme tokens;
-- unit tests for progression, mission logic and journey orchestration.
+Welcome and chapter screens use illustration-led layouts. Learning and reflection screens use light, readable surfaces. The scored Attention game remains stimulus-led with no decorative artwork behind the evidence.
 
-It deliberately does **not** implement or display scientific transfer indices, mutualist causal estimates, synergy scores or personalised network edges.
+The seven-node network is colour-indexed: Attention blue, Relational violet, Binding rose, Path Horizon apricot, Knowledge Access gold, Generative Search jade and Reasoning teal. Unavailable nodes are clearly labelled previews, not working games or fabricated personal progress.
+
+## Implementation map
+
+| File | Responsibility |
+| --- | --- |
+| `src/app/studio.ts` | Presentation controller, navigation, account integration and complete Attention journey |
+| `src/app/studioModel.ts` | Seven palette/world definitions, actual-wrapper narrative, due-mission scheduling and contextual practice cases |
+| `src/theme/studio.css` | Square desktop and portrait mobile composition |
+| `src/theme/studio-art.css` | Local wave artwork, responsive crop and control-size refinements |
+| `public/art/` | Artwork and provenance; no Big Health assets |
+| `src/modules/attention/game/` | Unchanged Attention task, timing, scoring and stimulus runtime |
+| `scripts/verify-studio.mjs` | Real-browser journey, responsive assertions and screenshots |
+| `tests/journey/studio.test.ts` | Pure model and scheduling checks |
+
+The shared module registry, entitlements, authentication and existing local progress/mission/rule storage remain in use. No new remote research collection or automatic causal network inference is introduced.
 
 ## Local development
 
@@ -45,62 +42,55 @@ npm run build
 npm run dev
 ```
 
-New node implementation belongs under:
+Use the URL printed by Vite with `?attention-qa=1`, normally:
 
-`src/modules/<node>/`
+```text
+http://127.0.0.1:5173/?attention-qa=1
+```
 
-Complex architecture and coding is managed with ChatGPT GPT-5.6 Sol. Qwen is reserved for bounded lower-risk operating work such as content drafts, scheduling, sales/CRM support and repetitive transformations.
+This existing QA flag unlocks Attention and activates the accelerated five-session walkthrough without a Stripe-derived entitlement. It remains a test-branch facility, not a production entitlement path. PR #6 remains draft.
 
+First entry shows the illustrated welcome; returning users resume their journey. To revisit the chapter without deleting saved progress, use **More → Replay this chapter**.
 
 ## Attention Control QA walkthrough
 
-The Attention QA branch supports a deliberately accelerated five-session product-test sequence:
-
 ```text
-1. Static/Polar core
-2. Optic Flow perturbation
-3. Static/Polar return
-4. Emotional Distractor perturbation
-5. Static/Polar return
+Static/Polar anchor
+→ Optic Flow perturbation
+→ Static/Polar return
+→ Emotional Distractor perturbation
+→ Static/Polar return
 ```
 
-Transitions are forced for QA and must not be interpreted as learning-curve or plateau evidence.
+Transitions are forced for QA and must not be interpreted as plateau or transfer evidence. The narrative describes the actual current wrapper; outside QA, it is not inferred simply from session number.
 
-For a no-payment local test:
+## Adaptive learning journey
+
+```text
+Chapter 01 · Signal — What matters now?
+→ train the abstract operation
+→ extract: Pause. Find the signal. Commit.
+→ recognise the move in a feed, workspace or optional AI exercise
+→ choose a real context, action, prediction and review point
+→ return for feedback when an opportunity actually occurs
+→ keep, revise or skip a WHEN / I WILL / BECAUSE learning note
+→ continue training and application
+```
+
+A future-dated mission does not force an immediate check-in. Users may continue training while waiting for reality to return information. A no-opportunity response reschedules rather than counting as failure. Banked rules remain tentative personal learning notes, not proof of transfer.
+
+The AI exercise is a disclosed simulation: human judgement → AI shortlist → corrections → a fresh unaided case. It is not a live-model benchmark. Training performance, mission feedback and G Track measurement remain separate evidence layers.
+
+## Browser review
 
 ```bash
-cd apps/iqm-platform
-npm install
-npm run dev
+npm run build
+npx playwright install chromium
+npm run test:browser
 ```
 
-Then open the local URL with:
+The script serves the actual built app, completes an accelerated QA session through the real runtime, exercises strategy/context/mission/check-in/banking and verifies desktop square and portrait phone layouts. It writes screenshots and `qa-results.json` to `studio-review/`.
 
-```text
-?attention-qa=1
-```
+GitHub Actions runs the unit tests, TypeScript/Vite build and browser review, then uploads `synergy-iq-visual-review` and `synergy-iq-screen-review` artefacts for seven days. Test clock acceleration and responses are confined to the test script; they are not shipped as user behaviour or efficacy evidence.
 
-The QA query flag unlocks Attention and activates the five-session forced sequence without requiring a Stripe-derived entitlement. It is intended only for this test branch and should not be preserved as a production entitlement path.
-
-The Attention node also exposes a curated **Find the Signal** human-AI practice. This is a disclosed simulation with deliberate AI omissions/false positives followed by a fresh unaided case; it is not a live-model benchmark.
-
-## Adaptive journey
-
-The shared narrative/product contract is:
-
-`../../specs/IQM_ADAPTIVE_JOURNEY_SPEC_v0.1.md`
-
-The default Attention journey is now:
-
-```text
-understand Chapter 01 · Signal
-→ train the abstract operation
-→ extract "Pause. Find the signal. Commit."
-→ take one Reality Mission outside the app
-→ check what actually happened
-→ bank a WHEN / I WILL / BECAUSE rule
-→ continue through perturbation / return
-→ optional AI niche challenge
-```
-
-The scored game, mission feedback and G Track measurement remain separate evidence layers.
+See `DESIGN_REVIEW_2026-09-22.md` for the verified scope and remaining release work.
