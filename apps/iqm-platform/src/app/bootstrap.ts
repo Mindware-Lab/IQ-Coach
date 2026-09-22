@@ -82,8 +82,9 @@ function pagerMarkup(currentPage: number, totalPages: number): string {
 }
 
 export async function bootstrap(root: HTMLElement): Promise<void> {
-  const attentionQa = import.meta.env.VITE_IQM_ATTENTION_QA === "true";
-  const qaAccess = import.meta.env.VITE_IQM_QA_ACCESS === "true";
+  const qaQuery = new URLSearchParams(window.location.search).has("attention-qa");
+  const attentionQa = import.meta.env.VITE_IQM_ATTENTION_QA === "true" || qaQuery;
+  const qaAccess = import.meta.env.VITE_IQM_QA_ACCESS === "true" || qaQuery;
   const localPreview =
     qaAccess ||
     (!isPlatformAuthConfigured &&
@@ -359,6 +360,41 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     if (!host) throw new Error("Missing Attention AI practice host.");
     mountAttentionAiPractice(host);
   }
+  function renderTrainingIntro(nodeId: NodeId): void {
+    const module = getNodeModule(nodeId);
+    const progress = loadBrowserNodeProgress(userKey(), nodeId);
+    const qaStep = attentionQa && nodeId === "attention" ? attentionQaStep(progress.totalSessions) : null;
+    const sessionNumber = progress.totalSessions + 1;
+    let title = "Ready to train?";
+    let copy = "Stay with the task goal and let the difficulty adapt around you.";
+    let invariant = "The target operation stays the same.";
+    if (qaStep?.wrapperMode === "A" && sessionNumber === 1) {
+      title = "Build your core";
+      copy = "This is the stable Attention game we return to after each challenge.";
+      invariant = "Find whether the majority of signals point IN or OUT.";
+    } else if (qaStep?.wrapperMode === "B") {
+      title = "Same skill. New surface.";
+      copy = "Static arrows become optic-flow motion for one session. The visual carrier changes; the majority relation does not.";
+      invariant = "Keep extracting the same IN / OUT majority relation.";
+    } else if (qaStep?.wrapperMode === "C") {
+      title = "Hold the goal under salience";
+      copy = "Faces will compete for attention, but they never contain information needed for the answer.";
+      invariant = "Ignore the face. Use only the arrow majority.";
+    } else if (qaStep?.wrapperMode === "A") {
+      title = "Return to the core";
+      copy = "You are back on the stable game. This is where the full protocol measures recovery and possible frontier extension.";
+      invariant = "Recover the same IN / OUT majority operation.";
+    }
+    root.innerHTML = shell(`<section class="panel screen-panel session-preflight">
+      <button type="button" class="text-button" data-action="node-home">← Attention</button>
+      <div class="preflight-stage"><span class="preflight-index">${sessionNumber}</span><span>SESSION ${sessionNumber}${attentionQa && nodeId === "attention" ? " OF 5" : ""}</span></div>
+      <h2>${escapeHtml(title)}</h2>
+      <p>${escapeHtml(copy)}</p>
+      <div class="preflight-invariant"><span>WHAT STAYS</span><strong>${escapeHtml(invariant)}</strong></div>
+      ${nodeId === "attention" ? attentionQaJourneyMarkup(progress.totalSessions) : ""}
+      <div class="preflight-footer"><span class="muted-copy">About ${escapeHtml(module.estimatedSessionMinutes)} min in this QA build</span><button type="button" class="platform-button" data-action="start-session">Start session →</button></div>
+    </section>`);
+  }
   function renderTraining(nodeId: NodeId): void {
     const module = getNodeModule(nodeId);
     const progress = loadBrowserNodeProgress(userKey(), nodeId);
@@ -441,6 +477,10 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       return;
     }
     if (action === "train" && state.selectedNodeId) {
+      renderTrainingIntro(state.selectedNodeId);
+      return;
+    }
+    if (action === "start-session" && state.selectedNodeId) {
       renderTraining(state.selectedNodeId);
       return;
     }
