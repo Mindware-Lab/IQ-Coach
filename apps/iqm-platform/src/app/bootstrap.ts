@@ -452,7 +452,8 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
 
     const pageContent = page === 0
       ? `<div class="screen-content">
-          <h2>${escapeHtml(module.strategy.handle)}</h2>
+          <p class="move-intro">The game trained an operation. Now turn it into a rule you can recognise outside the game.</p>
+          <h2>${escapeHtml(module.journey?.portableMove ?? module.strategy.handle)}</h2>
           <p class="strategy-explanation">${escapeHtml(module.strategy.explanation)}</p>
           <div class="strategy-grid"><div><h3>Use it when…</h3>${listItems(module.strategy.targetCues)}</div><div><h3>Skip it when…</h3>${listItems(module.strategy.antiCues)}</div></div>
         </div>`
@@ -475,7 +476,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
 
     root.innerHTML = shell(`<section class="panel screen-panel strategy-screen">
       <button type="button" class="text-button" data-action="node-home">← ${escapeHtml(module.shortTitle)}</button>
-      <p class="section-kicker">USE</p>
+      <p class="section-kicker">THE MOVE · USE</p>
       ${pageContent}
       <div class="screen-footer">${previous}${pagerMarkup(page, totalPages)}${next}</div>
     </section>`);
@@ -484,6 +485,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
   function renderMissions(nodeId: NodeId): void {
     const module = getNodeModule(nodeId);
     const missions = loadBrowserMissions(userKey(), nodeId);
+    const checkins = loadBrowserMissionCheckins(userKey(), nodeId);
     const savedPerPage = 2;
     const savedPageCount = Math.max(1, Math.ceil(missions.length / savedPerPage));
     const firstSavedPage = module.missions.length;
@@ -495,15 +497,35 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     if (page < firstSavedPage) {
       const mission = module.missions[page];
       pageContent = `<div class="screen-content">
-        <h2>Pick one small real-life mission</h2><p class="muted-copy">Choose something easy to notice and easy to try.</p>
-        <div class="mission-grid"><article class="mission-card"><h3>${escapeHtml(mission.title)}</h3><p>${escapeHtml(mission.contextExample)}</p><button type="button" class="platform-button secondary-button" data-plan-mission="${escapeHtml(mission.id)}">Choose this</button></article></div>
+        <h2>Cross the reality boundary</h2>
+        <p class="muted-copy">${escapeHtml(module.journey?.realityPrompt ?? "Choose one small real-life mission. Keep it easy to notice, easy to try and easy to review.")}</p>
+        <div class="mission-grid"><article class="mission-card">
+          <p class="section-kicker">MISSION ${page + 1} OF ${firstSavedPage}</p>
+          <h3>${escapeHtml(mission.title)}</h3>
+          <p><strong>Where:</strong> ${escapeHtml(mission.contextExample)}</p>
+          <p><strong>Trigger:</strong> ${escapeHtml(mission.targetCue)}</p>
+          <blockquote>${escapeHtml(mission.intendedPolicy)}</blockquote>
+          <button type="button" class="platform-button" data-plan-mission="${escapeHtml(mission.id)}">Take this into reality →</button>
+        </article></div>
       </div>`;
     } else {
       const savedIndex = page - firstSavedPage;
       const savedChunk = missions.slice(savedIndex * savedPerPage, (savedIndex + 1) * savedPerPage);
       pageContent = `<div class="screen-content">
-        <h2>Your missions</h2><p class="muted-copy">Small, cue-linked practice keeps the skill connected to real life.</p>
-        ${savedChunk.length ? `<div class="planned-list">${savedChunk.map((mission) => `<p><strong>${escapeHtml(mission.context)}</strong><br>${escapeHtml(mission.intendedPolicy)}</p>`).join("")}</div>` : `<p class="muted-copy">Nothing planned yet.</p>`}
+        <h2>Your Reality Missions</h2>
+        <p class="muted-copy">The app cannot prove transfer from self-report. These check-ins simply keep action and feedback inside the learning loop.</p>
+        ${savedChunk.length ? `<div class="planned-list">${savedChunk.map((mission) => {
+          const checkin = [...checkins].reverse().find((row) => row.missionId === mission.id && row.opportunityOccurred);
+          const banked = hasBankedMissionRule(userKey(), nodeId, mission.id);
+          const action = mission.status === "reschedule"
+            ? `<button type="button" class="platform-button compact-button" data-mission-checkin="${escapeHtml(mission.id)}">Check in when the opportunity occurs</button>`
+            : !checkin
+              ? `<button type="button" class="platform-button compact-button" data-mission-checkin="${escapeHtml(mission.id)}">What did reality say?</button>`
+              : !banked
+                ? `<button type="button" class="platform-button compact-button" data-bank-mission="${escapeHtml(mission.id)}">Bank the learning</button>`
+                : `<span class="mission-reviewed">Reviewed ✓</span>`;
+          return `<article class="planned-mission"><strong>${escapeHtml(mission.context)}</strong><p>${escapeHtml(mission.intendedPolicy)}</p>${action}</article>`;
+        }).join("")}</div>` : `<p class="muted-copy">Nothing planned yet.</p>`}
       </div>`;
     }
 
@@ -515,10 +537,158 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       : `<span aria-hidden="true"></span>`;
 
     root.innerHTML = shell(`<section class="panel screen-panel mission-screen">
-      <button type="button" class="text-button" data-action="node-home">← ${escapeHtml(module.shortTitle)}</button><p class="section-kicker">APPLY</p>
+      <button type="button" class="text-button" data-action="node-home">← ${escapeHtml(module.shortTitle)}</button><p class="section-kicker">REALITY · APPLY</p>
       ${pageContent}
       <div class="screen-footer">${previous}${pagerMarkup(page, totalPages)}${next}</div>
     </section>`);
+  }
+
+  function missionFollowUpCopy(checkin: MissionCheckin): string {
+    const followUp = recommendMissionFollowUp(checkin);
+    if (followUp === "RESCHEDULE_OR_NEW_CONTEXT") return "The opportunity did not occur. That is not a failed mission — keep the rule and try it in another suitable context.";
+    if (followUp === "STRENGTHEN_CUE") return "The strategy was forgotten. Make the trigger more visible or place a reminder where the situation begins.";
+    if (followUp === "SHARPEN_TARGET_CUE") return "The cue was hard to notice. Make the trigger more concrete and easier to recognise.";
+    if (followUp === "REDESIGN_NICHE_SUPPORT") return "The environment got in the way. Change the workflow, interface or interruption pattern before blaming the capacity.";
+    if (followUp === "REVISIT_ANTI_CUES") return "The strategy did not fit this situation. Revisit when Attention Control should — and should not — be used.";
+    if (followUp === "REDUCE_FRICTION") return "Pressure made the strategy hard to use. Reduce the number of steps or make the cue available earlier.";
+    if (followUp === "HUMAN_REVIEW") return "Something else blocked use. Keep the note and choose a smaller next experiment.";
+    return "You completed the loop. Now extract the part worth carrying forward.";
+  }
+
+  function renderMissionCheckin(nodeId: NodeId, missionId: string): void {
+    const mission = loadBrowserMissions(userKey(), nodeId).find((row) => row.id === missionId);
+    if (!mission) {
+      state.notice = "Mission not found.";
+      renderNodeHome(nodeId);
+      return;
+    }
+    const module = getNodeModule(nodeId);
+    root.innerHTML = shell(`<section class="panel screen-panel mission-checkin-screen">
+      <button type="button" class="text-button" data-action="node-home">← ${escapeHtml(module.shortTitle)}</button>
+      <p class="section-kicker">FEEDBACK · REALITY</p>
+      <h2>What did reality say?</h2>
+      <p class="muted-copy">Review the action separately from the training score. The goal is to learn whether the cue, strategy and environment worked together.</p>
+      <div class="mission-checkin-context"><strong>${escapeHtml(mission.context)}</strong><p>${escapeHtml(mission.intendedPolicy)}</p></div>
+      <form id="mission-checkin-form" class="mission-checkin-form">
+        <label>Did the opportunity occur?
+          <select name="opportunity" required><option value="">Choose…</option><option value="yes">Yes</option><option value="no">No</option></select>
+        </label>
+        <label>Did you use the strategy?
+          <select name="strategyUse"><option value="">Choose if applicable…</option><option value="yes">Yes</option><option value="partly">Partly</option><option value="no">No</option></select>
+        </label>
+        <label>What was the effect?
+          <select name="effect"><option value="">Choose if applicable…</option><option value="helped">Helped</option><option value="no-clear-difference">No clear difference</option><option value="made-it-harder">Made it harder</option><option value="not-sure">Not sure</option></select>
+        </label>
+        <label>Did the environmental change help?
+          <select name="environmentHelp"><option value="">Choose if applicable…</option><option value="yes">Yes</option><option value="no">No</option><option value="no-change">I did not make one</option></select>
+        </label>
+        <label>What got in the way, if anything?
+          <select name="barrier"><option value="">Nothing / not applicable</option><option value="forgot">Forgot</option><option value="did-not-notice-cue">Did not notice the cue</option><option value="too-busy-under-pressure">Too busy / under pressure</option><option value="environment-got-in-way">Environment got in the way</option><option value="strategy-did-not-fit">Strategy did not fit</option><option value="other">Other</option></select>
+        </label>
+        <label>Anything worth remembering?
+          <textarea name="note" rows="3" maxlength="300" placeholder="One short observation is enough."></textarea>
+        </label>
+        <p class="form-message" id="mission-checkin-message" role="status"></p>
+        <button type="submit" class="platform-button">Save the feedback →</button>
+      </form>
+    </section>`);
+
+    const form = root.querySelector<HTMLFormElement>("#mission-checkin-form");
+    form?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const data = new FormData(form);
+      const occurred = String(data.get("opportunity") ?? "") === "yes";
+      const strategyUse = String(data.get("strategyUse") ?? "") as StrategyUse | "";
+      const effect = String(data.get("effect") ?? "") as MissionEffect | "";
+      const environmentHelp = String(data.get("environmentHelp") ?? "") as EnvironmentHelp | "";
+      const barrier = String(data.get("barrier") ?? "") as MissionBarrier | "";
+      const note = String(data.get("note") ?? "").trim();
+      const checkin: MissionCheckin = {
+        id: randomId("mission-checkin"),
+        missionId: mission.id,
+        userId: userKey(),
+        nodeId,
+        opportunityOccurred: occurred,
+        strategyUse: occurred && strategyUse ? strategyUse : undefined,
+        effect: occurred && effect ? effect : undefined,
+        environmentHelp: occurred && environmentHelp ? environmentHelp : undefined,
+        barrier: occurred && barrier ? barrier : undefined,
+        note: note || undefined,
+        createdAt: new Date().toISOString(),
+      };
+      const message = root.querySelector<HTMLElement>("#mission-checkin-message");
+      if (!String(data.get("opportunity") ?? "")) {
+        if (message) message.textContent = "Choose whether the opportunity occurred.";
+        return;
+      }
+      if (!isMissionCheckinComplete(checkin)) {
+        if (message) message.textContent = "For an opportunity that occurred, complete strategy use, effect and environment support.";
+        return;
+      }
+      saveBrowserMissionCheckin(userKey(), checkin);
+      const updated: Mission = {
+        ...mission,
+        status: occurred ? "done" : "reschedule",
+        dueAt: occurred ? mission.dueAt : new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+      };
+      saveBrowserMission(userKey(), updated);
+      if (!occurred) {
+        state.notice = missionFollowUpCopy(checkin);
+        renderNodeHome(nodeId);
+        return;
+      }
+      renderBankLearning(nodeId, mission.id, checkin);
+    });
+  }
+
+  function renderBankLearning(nodeId: NodeId, missionId: string, suppliedCheckin?: MissionCheckin): void {
+    const mission = loadBrowserMissions(userKey(), nodeId).find((row) => row.id === missionId);
+    const checkin = suppliedCheckin ?? [...loadBrowserMissionCheckins(userKey(), nodeId)].reverse().find((row) => row.missionId === missionId && row.opportunityOccurred);
+    if (!mission || !checkin) {
+      state.notice = "Complete the mission check-in before banking a rule.";
+      renderNodeHome(nodeId);
+      return;
+    }
+    const module = getNodeModule(nodeId);
+    root.innerHTML = shell(`<section class="panel screen-panel bank-screen">
+      <button type="button" class="text-button" data-action="node-home">← ${escapeHtml(module.shortTitle)}</button>
+      <p class="section-kicker">BANK · KEEP WHAT SURVIVED</p>
+      <h2>Turn feedback into a reusable rule</h2>
+      <p class="muted-copy">${escapeHtml(missionFollowUpCopy(checkin))}</p>
+      <form id="bank-rule-form" class="bank-rule-form">
+        <label>When…
+          <textarea name="whenCue" rows="2" maxlength="240" required>${escapeHtml(mission.targetCue)}</textarea>
+        </label>
+        <label>I will…
+          <textarea name="actionRule" rows="3" maxlength="300" required>${escapeHtml(mission.intendedPolicy)}</textarea>
+        </label>
+        <label>Because…
+          <textarea name="because" rows="2" maxlength="240" placeholder="Optional: what did the world teach you?">${escapeHtml(checkin.note ?? "")}</textarea>
+        </label>
+        <button type="submit" class="platform-button">Bank this rule →</button>
+      </form>
+      <p class="muted-copy">A banked rule is a personal learning note, not evidence that the training caused a real-world outcome.</p>
+    </section>`);
+
+    root.querySelector<HTMLFormElement>("#bank-rule-form")?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const form = event.currentTarget as HTMLFormElement;
+      const data = new FormData(form);
+      const rule: BankedRule = {
+        id: randomId("banked-rule"),
+        userId: userKey(),
+        nodeId,
+        whenCue: String(data.get("whenCue") ?? "").trim(),
+        actionRule: String(data.get("actionRule") ?? "").trim(),
+        because: String(data.get("because") ?? "").trim() || undefined,
+        sourceMissionId: mission.id,
+        createdAt: new Date().toISOString(),
+      };
+      if (!rule.whenCue || !rule.actionRule) return;
+      saveBrowserBankedRule(userKey(), rule);
+      state.notice = "Adaptive rule banked. The next problem starts from a richer state.";
+      renderNodeHome(nodeId);
+    });
   }
 
   function renderAiPractice(): void {
