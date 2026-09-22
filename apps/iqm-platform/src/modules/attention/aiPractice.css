@@ -8,3 +8,20 @@
 .signal-card.is-selected .signal-marker { background: var(--iqm-cyan); color: #fff; }
 .ai-next { align-self: flex-end; margin-top: auto; }
 @media (max-width: 560px) { .signal-grid { grid-template-columns: 1fr; gap: 6px; } .signal-card { padding: 8px; font-size: .75rem; } }
+
+.ai-practice-screen { overflow: hidden; }
+.ai-practice-host { overflow: hidden; }
+.signal-grid {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+}
+@media (max-width: 720px) {
+  .ai-practice-screen { padding: 10px; }
+  .ai-practice-host h2 { font-size: 1.12rem; margin-bottom: .35rem; }
+  .ai-practice-host > p { font-size: .76rem; margin-bottom: .35rem; }
+  .signal-grid { grid-template-columns: 1fr; gap: 6px; margin: 5px 0; }
+  .signal-card { padding: 7px 8px; font-size: .72rem; line-height: 1.25; }
+  .signal-marker { flex-basis: 22px; width: 22px; height: 22px; }
+  .ai-next { min-height: 38px; padding: 7px 10px; }
+}
