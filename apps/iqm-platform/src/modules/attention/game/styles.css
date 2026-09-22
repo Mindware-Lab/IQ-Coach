@@ -293,3 +293,20 @@
   .attention-response { width: calc(100% - 12px); }
   .attention-key { display: none; }
 }
+
+/* Stable response controls: no disappearing targets between trial stages. */
+.attention-response button { min-height: 46px; }
+.attention-response button:disabled {
+  opacity: 1;
+  cursor: default;
+  color: #506478;
+  background: linear-gradient(180deg, #eff4f8, #e1eaf1);
+  box-shadow: inset 0 0 0 1px #d1dde7;
+  filter: none;
+}
+.attention-response button:disabled .attention-key { background: #ffffff80; }
+/* Feedback must sit above, never obscure, the now-persistent controls. */
+.attention-feedback { bottom: 72px; pointer-events: none; }
+@media (max-width: 720px) {
+  .attention-feedback { bottom: 64px; }
+}
