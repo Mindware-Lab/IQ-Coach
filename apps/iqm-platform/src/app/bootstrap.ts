@@ -8,9 +8,25 @@ import {
 } from "../core/auth/client";
 import { loadCurrentUserEntitlements } from "../core/entitlements/repository";
 import { unlockedNodeIds, type EntitlementRecord } from "../core/entitlements/store";
-import { loadBrowserMissions, saveBrowserMission } from "../core/persistence/missions";
+import {
+  loadBrowserMissionCheckins,
+  loadBrowserMissions,
+  saveBrowserMission,
+  saveBrowserMissionCheckin,
+} from "../core/persistence/missions";
+import {
+  hasBankedMissionRule,
+  hasSeenNodeChapter,
+  hasSeenPlatformOrientation,
+  loadBrowserBankedRules,
+  markNodeChapterSeen,
+  markPlatformOrientationSeen,
+  saveBrowserBankedRule,
+} from "../core/persistence/journey";
 import { clearBrowserNodeProgress, loadBrowserNodeProgress, saveBrowserNodeProgress } from "../core/persistence/progress";
 import { loadBrowserStrategyStatus, saveBrowserStrategyStatus } from "../core/persistence/strategy";
+import { journeyStageStatuses, nextJourneyStage } from "../core/journey/engine";
+import { isMissionCheckinComplete, recommendMissionFollowUp } from "../core/missions/engine";
 import { recordProgressionSession } from "../core/progression/engine";
 import { PHASE_PUBLIC_LABELS, wrapperModeForPhase } from "../core/progression/session";
 import { NODE_CATALOGUE } from "../modules/catalogue";
@@ -18,8 +34,9 @@ import { getNodeModule, isNodeModuleRegistered } from "../modules/registry";
 import { ATTENTION_QA_SEQUENCE } from "../modules/attention/module";
 import { mountAttentionAiPractice } from "../modules/attention/aiPracticeView";
 import type { TrainingSummary, WrapperMode } from "../types/game";
-import type { Mission } from "../types/mission";
-import type { NodeId } from "../types/node";
+import type { BankedRule } from "../types/learning";
+import type { Mission, MissionCheckin, MissionEffect, StrategyUse, EnvironmentHelp, MissionBarrier } from "../types/mission";
+import type { JourneyBeat, JourneyBeatId, NodeId } from "../types/node";
 import type { ProgressionDecision } from "../types/progression";
 
 interface RuntimeState {
@@ -42,12 +59,13 @@ interface NetworkNodeUi {
 }
 
 const NETWORK_NODE_UI: Record<NodeId, NetworkNodeUi> = {
-  attention: { label: "Attention", shortLabel: "Attention", x: 50, y: 12 },
-  "relational-memory": { label: "Relations", shortLabel: "Relations", x: 80, y: 31 },
-  "binding-memory": { label: "Binding", shortLabel: "Binding", x: 80, y: 69 },
-  reasoning: { label: "Reasoning", shortLabel: "Reasoning", x: 50, y: 88 },
-  "generative-search": { label: "Ideas", shortLabel: "Ideas", x: 20, y: 69 },
-  "predictive-mapping": { label: "Prediction", shortLabel: "Prediction", x: 20, y: 31 },
+  attention: { label: "Attention Control", shortLabel: "Attention", x: 50, y: 12 },
+  "relational-memory": { label: "Relational Memory", shortLabel: "Relations", x: 79, y: 27 },
+  "binding-memory": { label: "Binding Memory", shortLabel: "Binding", x: 86, y: 58 },
+  "path-horizon": { label: "Path Horizon", shortLabel: "Path", x: 66, y: 83 },
+  "knowledge-access": { label: "Knowledge Access", shortLabel: "Knowledge", x: 34, y: 83 },
+  "generative-search": { label: "Generative Search", shortLabel: "Ideas", x: 14, y: 58 },
+  reasoning: { label: "Reasoning", shortLabel: "Reasoning", x: 21, y: 27 },
 };
 
 function escapeHtml(value: unknown): string {
@@ -114,7 +132,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
   function shell(body: string): string {
     return `<div class="app-shell">
       <header class="topbar">
-        <div><p class="eyebrow">IQ MINDWARE</p><h1>Build a stronger thinking network</h1><p class="lede">Train skills. Learn when to use them. Put them to work in real life.</p></div>
+        <div><p class="eyebrow">IQ MINDWARE</p><h1>Navigate possibility. Build intelligence.</h1><p class="lede">Turn possibility into agency.</p></div>
         ${accountMarkup()}
       </header>
       ${state.notice ? `<div class="notice">${escapeHtml(state.notice)}</div>` : ""}
@@ -205,14 +223,136 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
   }
 
   function networkMap(): string {
-    return `<div class="network-map" aria-label="Your six-part thinking network">
+    return `<div class="network-map" aria-label="Your seven-part adaptive intelligence network">
       <svg class="network-map-lines" viewBox="0 0 100 100" aria-hidden="true">
         <circle cx="50" cy="50" r="36" class="network-ring" />
         ${Object.values(NETWORK_NODE_UI).map((ui) => `<line x1="50" y1="50" x2="${ui.x}" y2="${ui.y}" />`).join("")}
       </svg>
-      <div class="network-hub"><strong>Your</strong><span>Network</span></div>
+      <div class="network-hub"><strong>Adaptive</strong><span>IQ</span></div>
       ${NODE_CATALOGUE.map((node) => networkNode(node.id)).join("")}
     </div>`;
+  }
+
+
+  const ATTENTION_BEAT_ORDER: readonly JourneyBeatId[] = ["anchor", "perturb", "return", "salience", "bank"];
+
+  function attentionJourneyBeat(sessionIndex: number): JourneyBeat | null {
+    const journey = getNodeModule("attention").journey;
+    if (!journey) return null;
+    const id = ATTENTION_BEAT_ORDER[Math.max(0, Math.min(sessionIndex, ATTENTION_BEAT_ORDER.length - 1))];
+    return journey.beats[id];
+  }
+
+  function journeySnapshot(nodeId: NodeId) {
+    const progress = loadBrowserNodeProgress(userKey(), nodeId);
+    const strategyStatus = loadBrowserStrategyStatus(userKey(), nodeId);
+    const missions = loadBrowserMissions(userKey(), nodeId);
+    const checkins = loadBrowserMissionCheckins(userKey(), nodeId);
+    const bankedRules = loadBrowserBankedRules(userKey(), nodeId);
+    const pendingMission = [...missions].reverse().find((mission) =>
+      (mission.status === "planned" || mission.status === "reschedule") &&
+      !checkins.some((checkin) => checkin.missionId === mission.id),
+    );
+    const unbankedMission = [...missions].reverse().find((mission) =>
+      checkins.some((checkin) => checkin.missionId === mission.id) &&
+      !hasBankedMissionRule(userKey(), nodeId, mission.id),
+    );
+    const input = {
+      chapterSeen: hasSeenNodeChapter(userKey(), nodeId),
+      sessionsCompleted: progress.totalSessions,
+      strategyStarted: strategyStatus !== "not-started",
+      missionsPlanned: missions.length,
+      missionCheckins: checkins.length,
+      bankedRules: bankedRules.length,
+    };
+    let nextStage = nextJourneyStage(input);
+    if (pendingMission) nextStage = "review";
+    else if (unbankedMission) nextStage = "bank";
+    return { progress, strategyStatus, missions, checkins, bankedRules, pendingMission, unbankedMission, input, nextStage };
+  }
+
+  function journeyAction(nodeId: NodeId) {
+    const module = getNodeModule(nodeId);
+    const snapshot = journeySnapshot(nodeId);
+    const chapter = module.journey;
+    if (snapshot.nextStage === "understand") {
+      return { kicker: "UNDERSTAND", title: chapter ? `Chapter ${chapter.chapterNumber} · ${chapter.chapterTitle}` : "Understand the skill", copy: chapter?.humanQuestion ?? module.shortDescription, label: "Start the chapter", attrs: 'data-action="chapter"' };
+    }
+    if (snapshot.nextStage === "train") {
+      const beat = nodeId === "attention" ? attentionJourneyBeat(snapshot.progress.totalSessions) : null;
+      return { kicker: "TRAIN", title: beat?.title ?? "Build the skill", copy: beat?.copy ?? module.shortDescription, label: "Train now", attrs: 'data-action="train"' };
+    }
+    if (snapshot.nextStage === "use") {
+      return { kicker: "USE", title: "Turn the game into a portable move", copy: chapter?.portableMove ?? module.strategy.handle, label: "Learn the move", attrs: 'data-action="strategy"' };
+    }
+    if (snapshot.nextStage === "apply") {
+      return { kicker: "REALITY", title: "Cross the reality boundary", copy: chapter?.realityPrompt ?? "Choose one small real situation where this skill matters.", label: "Choose a mission", attrs: 'data-action="missions"' };
+    }
+    if (snapshot.nextStage === "review" && snapshot.pendingMission) {
+      return { kicker: "FEEDBACK", title: "What did reality say?", copy: `Review your mission: ${snapshot.pendingMission.context}`, label: "Check in", attrs: `data-mission-checkin="${escapeHtml(snapshot.pendingMission.id)}"` };
+    }
+    if (snapshot.nextStage === "bank" && snapshot.unbankedMission) {
+      return { kicker: "BANK", title: "Keep what survived", copy: chapter?.bankPrompt ?? "Turn useful feedback into a reusable rule.", label: "Bank the learning", attrs: `data-bank-mission="${escapeHtml(snapshot.unbankedMission.id)}"` };
+    }
+    if (attentionQa && nodeId === "attention" && snapshot.progress.totalSessions >= ATTENTION_QA_SEQUENCE.length) {
+      return { kicker: "CHAPTER COMPLETE", title: "Signal is now a portable idea", copy: "You have moved from an abstract Attention task through changed surfaces and back again. Use the AI niche challenge or another real mission to keep testing the rule.", label: "Try the AI niche challenge", attrs: 'data-action="ai-practice"' };
+    }
+    const beat = nodeId === "attention" ? attentionJourneyBeat(snapshot.progress.totalSessions) : null;
+    return { kicker: "CONTINUE", title: beat?.title ?? "Continue the journey", copy: beat?.copy ?? "Return to training from a richer starting point.", label: "Continue training", attrs: 'data-action="train"' };
+  }
+
+  function journeyProgressMarkup(nodeId: NodeId): string {
+    const snapshot = journeySnapshot(nodeId);
+    const labels: Record<string, string> = {
+      understand: "Understand",
+      train: "Train",
+      use: "Use",
+      apply: "Apply",
+      review: "Review",
+    };
+    return `<div class="journey-progress" aria-label="Adaptive journey progress">${journeyStageStatuses(snapshot.input).map((stage) =>
+      `<span class="${stage.complete ? "is-complete" : ""} ${stage.current ? "is-current" : ""}"><b>${stage.complete ? "✓" : "•"}</b>${labels[stage.id]}</span>`
+    ).join("")}</div>`;
+  }
+
+  function renderOrientation(): void {
+    const attentionReady = state.unlocked.has("attention") && isNodeModuleRegistered("attention");
+    root.innerHTML = shell(`<section class="panel screen-panel orientation-screen">
+      <div class="orientation-copy">
+        <p class="section-kicker">ADAPTIVE INTELLIGENCE</p>
+        <h2>Navigate possibility.<br>Build intelligence.</h2>
+        <p class="orientation-agency">Turn possibility into agency.</p>
+        <p>Modern life gives us more information, tools, connections and possible paths than ever before. Synergy IQ trains the capacities that help you navigate that abundance — then teaches you how to recognise and use those capacities outside the game.</p>
+        <div class="orientation-flow" aria-label="The Synergy IQ learning loop">
+          <span>TRAIN A CAPACITY</span><b>→</b><span>EXTRACT THE MOVE</span><b>→</b><span>USE IT IN CONTEXT</span><b>→</b><span>LET REALITY ANSWER</span><b>→</b><span>BANK WHAT SURVIVES</span>
+        </div>
+      </div>
+      <div class="orientation-actions">
+        ${attentionReady ? '<button type="button" class="platform-button" data-action="orientation-attention">Begin with Attention Control</button>' : ""}
+        <button type="button" class="platform-button secondary-button" data-action="orientation-dashboard">Explore my network</button>
+      </div>
+    </section>`);
+  }
+
+  function renderChapterIntro(nodeId: NodeId): void {
+    const module = getNodeModule(nodeId);
+    if (!module.journey) {
+      markNodeChapterSeen(userKey(), nodeId);
+      renderNodeHome(nodeId);
+      return;
+    }
+    const journey = module.journey;
+    root.innerHTML = shell(`<section class="panel screen-panel chapter-screen">
+      <button type="button" class="text-button" data-action="dashboard">← Network</button>
+      <div class="chapter-lockup">
+        <p class="section-kicker">CHAPTER ${escapeHtml(journey.chapterNumber)} · ${escapeHtml(journey.chapterTitle.toUpperCase())}</p>
+        <h2>${escapeHtml(journey.worldviewHook)}</h2>
+        <div class="chapter-question"><span>THE QUESTION</span><strong>${escapeHtml(journey.humanQuestion)}</strong></div>
+        <p>${escapeHtml(journey.abstractRationale)}</p>
+        <blockquote>${escapeHtml(journey.portableMove)}</blockquote>
+      </div>
+      <div class="screen-footer"><span class="muted-copy">The scored game stays separate from these strategy and real-world layers.</span><button type="button" class="platform-button" data-action="chapter-begin">Start the journey →</button></div>
+    </section>`);
   }
 
   function renderDashboard(): void {
