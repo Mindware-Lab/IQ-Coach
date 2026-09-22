@@ -266,6 +266,40 @@ function renderOpticFlowMaskApertures(trial: AttentionTrial, clipRootId: string)
     .join("");
 }
 
+function emotionalFaceForTrial(trial: AttentionTrial): { emotion: "neutral" | "angry" | "afraid"; url: string } {
+  const sequence = ["neutral", "angry", "neutral", "afraid"] as const;
+  const emotion = sequence[trial.trialIndex % sequence.length];
+  const identity = (trial.trialIndex % 4) + 1;
+  const base = "https://www.iqmindware.com/synergy-iq/assets/stimuli/emotional-faces";
+  return { emotion, url: `${base}/${emotion}_${identity}.png` };
+}
+
+function renderEmotionStimulus(trial: AttentionTrial, stage: AttentionStage): string {
+  const showFixation = stage === "ready" || stage === "fixation" || stage === "stimulus";
+  const showArrows = stage === "stimulus";
+  const showMasks = stage === "mask";
+  const face = emotionalFaceForTrial(trial);
+  const arrows = trial.items
+    .map((item) => {
+      const angle = vectorAngleDegrees(item.vector);
+      return `<g transform="translate(${item.position.x} ${item.position.y}) rotate(${angle})"><polygon points="${arrowPolygonPoints()}" fill="currentColor" /></g>`;
+    })
+    .join("");
+  const masks = trial.items
+    .map((item) => `<polygon points="${diamondPolygonPoints(item.position)}" />`)
+    .join("");
+
+  return `<div class="stimulus-wrap is-emotion" aria-label="Brief arrow display with irrelevant emotional face">
+    ${stage === "stimulus" ? `<img class="emotion-face" src="${face.url}" alt="" aria-hidden="true" data-emotion="${face.emotion}" />` : ""}
+    <svg class="stimulus-svg emotion-task-svg" viewBox="0 0 100 100" role="img" aria-hidden="true">
+      <circle cx="50" cy="50" r="34" class="orbit-line" />
+      ${showArrows ? `<g class="stimulus-arrows emotion-arrows">${arrows}</g>` : ""}
+      ${showMasks ? `<g class="stimulus-masks">${masks}</g>` : ""}
+      ${showFixation || trial.frame === "relational" ? renderFixation() : ""}
+    </svg>
+  </div>`;
+}
+
 function renderFlowStimulus(trial: AttentionTrial, stage: AttentionStage): string {
   const showFixation = stage === "ready" || stage === "fixation" || stage === "stimulus";
   const clipId = `optic-clip-${safeSvgId(trial.id)}`;
@@ -283,7 +317,7 @@ export function renderAttentionStimulus(
   trial: AttentionTrial,
   stage: AttentionStage,
 ): string {
-  return trial.carrier === "flow"
-    ? renderFlowStimulus(trial, stage)
-    : renderArrowStimulus(trial, stage);
+  if (trial.carrier === "flow") return renderFlowStimulus(trial, stage);
+  if (trial.carrier === "emotion") return renderEmotionStimulus(trial, stage);
+  return renderArrowStimulus(trial, stage);
 }
