@@ -7,13 +7,15 @@ import {
 } from "./content";
 import { ATTENTION_WRAPPERS } from "./wrappers";
 
+export const ATTENTION_QA_SEQUENCE = ["A", "B", "A", "C", "A"] as const;
+
 export const attentionModule: IQMNodeModule = {
   id: "attention",
   title: "Attention Control",
   shortTitle: "Attention",
   shortDescription: "Protect relevant information while resisting competing signals.",
-  estimatedSessionMinutes: 15,
-  programmeSessions: 20,
+  estimatedSessionMinutes: 5,
+  programmeSessions: 5,
   game: attentionGameAdapter,
   wrappers: ATTENTION_WRAPPERS,
   progression: {
