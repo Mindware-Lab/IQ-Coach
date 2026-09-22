@@ -6,9 +6,33 @@ export type NodeId =
   | "attention"
   | "relational-memory"
   | "binding-memory"
-  | "predictive-mapping"
+  | "path-horizon"
+  | "knowledge-access"
   | "generative-search"
   | "reasoning";
+
+export type JourneyBeatId = "anchor" | "perturb" | "return" | "salience" | "bank";
+
+export interface JourneyBeat {
+  id: JourneyBeatId;
+  shortLabel: string;
+  title: string;
+  copy: string;
+  debriefTitle: string;
+  debriefCopy: string;
+}
+
+export interface NodeJourneyConfig {
+  chapterNumber: string;
+  chapterTitle: string;
+  humanQuestion: string;
+  worldviewHook: string;
+  portableMove: string;
+  abstractRationale: string;
+  beats: Record<JourneyBeatId, JourneyBeat>;
+  realityPrompt: string;
+  bankPrompt: string;
+}
 
 export interface StrategyExample {
   title: string;
