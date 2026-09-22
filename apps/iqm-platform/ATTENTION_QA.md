@@ -18,20 +18,23 @@ Open the local Vite URL (normally `http://127.0.0.1:5173/`).
 When Supabase environment variables are absent, localhost uses a deliberately limited preview mode:
 
 - Attention is unlocked;
-- the other five nodes remain visible but unavailable;
+- the other six nodes remain visible but unavailable;
 - no production authentication, entitlement or database writes occur;
 - progress, strategy status and planned missions are stored only in this browser's local storage.
 
 ## Acceptance walk-through
 
-1. **Network shell**
-   - Six nodes are visible.
-   - Attention is the only openable node in local preview.
+1. **Adaptive orientation + network shell**
+   - First use shows "Navigate possibility. Build intelligence." before the dashboard.
+   - Seven nodes are visible: Attention, Relational Memory, Binding Memory, Path Horizon, Knowledge Access, Generative Search and Reasoning.
+   - Attention is the only openable node in local Attention QA preview.
    - The G Track area is visibly separate from training performance.
    - No causal edge weights, synergy scores or predicted IQ/g change are shown.
 
-2. **Attention node boundary**
-   - The node journey is `TRAIN / USE / APPLY`.
+2. **Attention chapter boundary**
+   - Attention opens as **Chapter 01 · Signal** with the question "What matters now?"
+   - The portable move is **Pause. Find the signal. Commit.**
+   - The primary UI shows one next journey action before secondary tools.
    - No Binding Focus, colour-binding or working-memory/n-back task appears.
    - The legacy CCC remains a separate unchanged application.
 
@@ -42,12 +45,13 @@ When Supabase environment variables are absent, localhost uses a deliberately li
    - The session reports Accuracy, Difficulty and Median response time.
    - Completion returns a product-progression state, not a scientific transfer score.
 
-4. **A → B → A-return/reopen → A/B progression**
-   - A baseline is followed by A training.
-   - B is motion/optic-flow majority direction.
-   - B cannot jump directly into mixed practice.
-   - A return and A reopen occur before A/B mixing.
-   - Maximum-exposure fallbacks prevent indefinite blocking.
+4. **Narrated Anchor → Perturb → Return journey**
+   - Session 1: Find the signal.
+   - Optic Flow: Same skill. Different world.
+   - Static return: Can you recover it?
+   - Emotional Distractor: Salience is not relevance.
+   - Final static return: Bank the skill.
+   - Underlying APR/progression mechanics remain unchanged by the narrative layer.
 
 5. **Strategy / USE**
    - Portable handle: `What information actually matters here?`
@@ -55,10 +59,23 @@ When Supabase environment variables are absent, localhost uses a deliberately li
    - Worked examples include research/AI/meeting contexts and an exploration anti-cue.
    - Strategy can be marked `learned` or `practising`.
 
-6. **Niche / APPLY**
+6. **Reality / APPLY**
    - Three mission templates are available.
    - A mission stores context, trigger cue, intended policy and an environmental-support category.
+   - The guided journey asks for mission feedback before continuing.
+   - No-opportunity check-ins reschedule rather than count as failure.
    - Mission records are described as implementation feedback, not proof of far transfer.
+
+7. **BANK**
+   - Completed mission feedback can be converted to a reusable WHEN / I WILL / BECAUSE rule.
+   - Banked rules are shown on the node home.
+   - Banked rules are personal learning artefacts, not psychometric or causal scores.
+
+8. **AI niche challenge**
+   - Human judgement comes before the simulated AI shortlist.
+   - The user corrects omissions / false positives.
+   - A fresh unaided case follows.
+   - Copy explicitly distinguishes supported performance from retained capability.
 
 ## Not yet a production release gate
 
@@ -67,7 +84,6 @@ Before public deployment we still need:
 - human visual/playability QA;
 - production Supabase migration review/application;
 - remote progress/mission persistence wiring and validation;
-- full mission check-in UI;
 - current approved public claims profile;
 - entitlement/Stripe mapping for the final product keys;
 - browser/mobile QA.
