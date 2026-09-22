@@ -12,10 +12,13 @@ on:
       - "apps/iqm-platform/**"
       - ".github/workflows/iqm-platform-phase1.yml"
 
+permissions:
+  contents: read
+
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: apps/iqm-platform
@@ -30,3 +33,17 @@ jobs:
         run: npm test
       - name: Typecheck and build
         run: npm run build
+      - name: Prepare review snapshot
+        if: success()
+        run: |
+          mkdir -p review-bundle
+          cp -R dist review-bundle/dist
+          git rev-parse HEAD > review-bundle/source-commit.txt
+          git archive HEAD apps/iqm-platform/src apps/iqm-platform/tests apps/iqm-platform/public apps/iqm-platform/index.html apps/iqm-platform/package.json apps/iqm-platform/vite.config.ts apps/iqm-platform/tsconfig.json specs/SYNERGY_IQ_VISUAL_SCREEN_PLAN_v1.md specs/IQM_ADAPTIVE_JOURNEY_SPEC_v0.1.md | gzip > review-bundle/review-source.tar.gz
+      - name: Upload visual review build
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: synergy-iq-visual-review
+          path: apps/iqm-platform/review-bundle/
+          retention-days: 7
