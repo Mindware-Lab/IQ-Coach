@@ -1,12 +1,12 @@
 # IQ Mindware B2C Node Platform Specification v1
 
-## Common production framework for six Trident-G / Personal CSI cognitive-node apps
+## Common production framework for seven Trident-G / Personal CSI cognitive-node apps
 
 **Status:** Canonical implementation specification v1.0  
-**Date:** 11 September 2026  
+**Date:** 22 September 2026  
 **Repository:** `Mindware-Lab/IQ-Coach`  
 **Canonical path:** `specs/IQM_B2C_NODE_PLATFORM_SPEC_v1.md`  
-**Applies to:** Attention Control, Relational Memory, Binding Memory, Predictive Mapping, Generative Search and Reasoning B2C modules  
+**Applies to:** Attention Control, Relational Memory, Binding Memory, Path Horizon, Knowledge Access, Generative Search and Reasoning B2C modules  
 **Primary implementation stack:** Vite + TypeScript + Supabase  
 **Scientific companions:**  
 - `Mindware-Lab/trident-g-ground-truth/protocols/IQ_Coach/TRIDENT_G_TRANSFER_MECHANISMS_v1.md`
@@ -17,14 +17,16 @@
 
 # 1. Purpose
 
-The purpose of this specification is to make new IQ Mindware B2C cognitive apps cheap and fast to release without cloning the Cognitive Control Coach architecture six times.
+The purpose of this specification is to make new IQ Mindware B2C cognitive apps cheap and fast to release without cloning the Cognitive Control Coach architecture seven times.
 
 The production model is:
 
 ```text
 ONE IQ MINDWARE PLATFORM SHELL
 
-    ├── shared dashboard
+    ├── shared adaptive-intelligence orientation
+    ├── shared guided-journey orchestration
+    ├── shared dashboard / seven-node network map
     ├── shared authentication
     ├── shared entitlement / purchase logic
     ├── shared session shell
@@ -32,18 +34,25 @@ ONE IQ MINDWARE PLATFORM SHELL
     ├── shared strategy engine
     ├── shared mission / niche-design engine
     ├── shared mission check-ins
+    ├── shared banking of reusable rules
     ├── shared G Track surface
     ├── shared persistence / Supabase layer
     ├── shared IQ Mindware visual system
     │
-    └── SIX INTERCHANGEABLE NODE MODULES
+    └── SEVEN INTERCHANGEABLE NODE MODULES
          ├── Attention Control
          ├── Relational Memory
          ├── Binding Memory
-         ├── Predictive Mapping
+         ├── Path Horizon
+         ├── Knowledge Access
          ├── Generative Search
          └── Reasoning
 ```
+
+The shared narrative/orchestration layer is specified in
+`IQM_ADAPTIVE_JOURNEY_SPEC_v0.1.md`. It governs how the platform moves users
+from abstract training into explicit strategy, niche use, reality feedback and
+banked learning without mixing those layers into the scored game.
 
 A new commercial node should therefore require mainly:
 
@@ -66,7 +75,7 @@ The target release cadence is approximately **one new node every two weeks** onc
 
 ## 2.1 One platform, separate commercial entitlements
 
-The six cognitive products remain separately purchasable, but technically they are modules inside one application.
+The seven cognitive products remain separately purchasable, but technically they are modules inside one application.
 
 ```text
 purchase Attention Control
@@ -80,7 +89,7 @@ Purchasing a module should unlock its node in the common dashboard. It should no
 
 The dashboard is therefore the user's persistent IQ Mindware home.
 
-## 2.2 Six-node Personal CSI / Trident-G network
+## 2.2 Seven-node Personal CSI / Trident-G network
 
 The Phase-1 node set is:
 
@@ -88,12 +97,13 @@ The Phase-1 node set is:
 attention
 relational-memory
 binding-memory
-predictive-mapping
+path-horizon
+knowledge-access
 generative-search
 reasoning
 ```
 
-These are intervention-process nodes. They must not be presented as six exhaustive psychometric factors or as a measured causal network for the individual.
+These are intervention-process nodes. They must not be presented as seven exhaustive psychometric factors or as a measured causal network for the individual.
 
 Each node implements the same intervention chassis:
 
@@ -103,13 +113,22 @@ CAPACITY
 → NICHE / IMPLEMENTATION
 ```
 
-User-facing language should usually be simpler:
+User-facing language should usually expose the larger adaptive-learning loop:
 
 ```text
-TRAIN
-→ USE
-→ APPLY
+UNDERSTAND
+→ TRAIN
+→ EXTRACT THE MOVE
+→ APPLY IN A NICHE
+→ LET REALITY ANSWER
+→ BANK WHAT SURVIVES
+→ RE-ENTER
 ```
+
+The scored training task remains scientifically separate from strategy teaching,
+mission feedback and external measurement. "Train / Use / Apply" may remain as
+compact secondary navigation, but it should not be the user's only explanation
+of the journey.
 
 ## 2.3 Phase-1 science boundary
 
