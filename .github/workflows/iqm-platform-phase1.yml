@@ -18,7 +18,7 @@ permissions:
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     defaults:
       run:
         working-directory: apps/iqm-platform
@@ -41,11 +41,21 @@ jobs:
           cp -R dist review-bundle/dist
           git rev-parse HEAD > review-bundle/source-commit.txt
           git -C ../.. archive HEAD apps/iqm-platform apps/attention-coach/src apps/cognitive-bandwidth/src specs/SYNERGY_IQ_VISUAL_SCREEN_PLAN_v1.md specs/IQM_ADAPTIVE_JOURNEY_SPEC_v0.1.md | gzip > review-bundle/review-source.tar.gz
-          tar -czf review-bundle/dev-dependencies.tar.gz node_modules package-lock.json
+      - name: Install browser
+        run: npx playwright install --with-deps chromium
+      - name: Square and portrait journey checks
+        run: npm run test:browser
       - name: Upload visual review build
-        if: success()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: synergy-iq-visual-review
           path: apps/iqm-platform/review-bundle/
+          retention-days: 7
+      - name: Upload screen review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: synergy-iq-screen-review
+          path: apps/iqm-platform/studio-review/
           retention-days: 7
