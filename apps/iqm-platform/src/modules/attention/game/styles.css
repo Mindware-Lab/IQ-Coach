@@ -192,3 +192,47 @@
   .stimulus-wrap { width: min(100%, 260px, 32dvh); }
   .attention-task-stage { padding-bottom: 84px; }
 }
+
+/* Emotional Attention perturbation: salient face is irrelevant to the response. */
+.stimulus-wrap.is-emotion {
+  position: relative;
+  isolation: isolate;
+  border-radius: 18px;
+  background: #f8fbfe;
+  overflow: hidden;
+}
+.emotion-face {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 58%;
+  height: 58%;
+  transform: translate(-50%, -50%);
+  object-fit: contain;
+  opacity: 0.56;
+  filter: saturate(0.88) contrast(0.96);
+  z-index: 0;
+  pointer-events: none;
+}
+.emotion-task-svg { position: relative; z-index: 1; }
+.emotion-arrows { color: #0d1730; }
+
+.attention-response button:focus-visible {
+  outline: 3px solid rgba(34, 170, 255, 0.38);
+  outline-offset: 3px;
+}
+.attention-key {
+  display: inline-grid;
+  min-width: 1.6rem;
+  min-height: 1.6rem;
+  place-items: center;
+  margin-right: 0.35rem;
+  border-radius: 7px;
+  background: rgba(255,255,255,0.18);
+  font-size: 0.72rem;
+  font-weight: 950;
+}
+.attention-regime {
+  color: var(--iqm-blue);
+  font-weight: 900;
+}
