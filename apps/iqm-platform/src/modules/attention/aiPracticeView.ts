@@ -34,10 +34,11 @@ export function mountAttentionAiPractice(host: HTMLElement): () => void {
   function render(): void {
     if (stage === "human") {
       host.innerHTML = `
-        <p class="section-kicker">HUMAN FIRST</p>
-        <h2>Find the signal</h2>
+        <p class="section-kicker">NICHE CHALLENGE · HUMAN FIRST</p>
+        <h2>Can you find the signal before the tool does?</h2>
+        <p class="muted-copy">AI can make another explanation or shortlist cheap to generate. Own the goal first, then decide what evidence actually matters.</p>
         <p><strong>Goal:</strong> ${escapeHtml(ATTENTION_AI_PRACTICE_CASE.goal)}</p>
-        <p class="muted-copy">Select only the information that directly matters. Make your judgement before seeing the AI shortlist.</p>
+        <p class="muted-copy"><strong>The move:</strong> Pause. Find the signal. Commit. Make your judgement before seeing the AI shortlist.</p>
         ${cards(ATTENTION_AI_PRACTICE_CASE, human, "human")}
         <button type="button" class="platform-button ai-next" data-ai-action="show-ai">See the AI shortlist</button>`;
       return;
@@ -45,9 +46,9 @@ export function mountAttentionAiPractice(host: HTMLElement): () => void {
 
     if (stage === "ai-review") {
       host.innerHTML = `
-        <p class="section-kicker">CHALLENGE THE AI</p>
-        <h2>Check the shortlist</h2>
-        <p class="muted-copy">This simulated AI suggestion contains both useful evidence and a mistake. Correct omissions and false positives rather than accepting or rejecting it wholesale.</p>
+        <p class="section-kicker">GENERATIVE NICHE · KEEP JUDGEMENT</p>
+        <h2>AI expands the search. You keep the goal.</h2>
+        <p class="muted-copy">This simulated AI suggestion contains useful evidence, an omission and a false positive. Correct it rather than accepting or rejecting the whole output.</p>
         ${cards(ATTENTION_AI_PRACTICE_CASE, review, "review")}
         <button type="button" class="platform-button ai-next" data-ai-action="review">Check my corrections</button>`;
       return;
@@ -63,15 +64,15 @@ export function mountAttentionAiPractice(host: HTMLElement): () => void {
           <span><strong>Noise kept</strong><br>${score.falsePositives}</span>
           <span><strong>Relevant missed</strong><br>${score.misses}</span>
         </div>
-        <p class="muted-copy">The target is appropriate reliance: neither automatic trust nor automatic scepticism.</p>
-        <button type="button" class="platform-button ai-next" data-ai-action="start-check">Fresh unaided check</button>`;
+        <p class="muted-copy"><strong>Supported performance is not the same as retained capability.</strong> The next case removes the AI so you can see what stays with you.</p>
+        <button type="button" class="platform-button ai-next" data-ai-action="start-check">Fresh unaided check →</button>`;
       return;
     }
 
     if (stage === "check") {
       host.innerHTML = `
         <p class="section-kicker">CHECK WHAT STAYS · NO AI</p>
-        <h2>Fresh case</h2>
+        <h2>What remains without the scaffold?</h2>
         <p><strong>Goal:</strong> ${escapeHtml(ATTENTION_AI_CHECK_CASE.goal)}</p>
         <p class="muted-copy">Select the evidence yourself. This independent check remains separate from your training-game score.</p>
         ${cards(ATTENTION_AI_CHECK_CASE, check, "check")}
@@ -81,14 +82,14 @@ export function mountAttentionAiPractice(host: HTMLElement): () => void {
 
     const score = signalSelectionScore(ATTENTION_AI_CHECK_CASE, check);
     host.innerHTML = `
-      <p class="section-kicker">INDEPENDENT CHECK</p>
-      <h2>${score.exact ? "You kept the signal" : "Useful diagnostic"}</h2>
+      <p class="section-kicker">INDEPENDENT CHECK · BANK THE LESSON</p>
+      <h2>${score.exact ? "The signal survived the scaffold" : "Useful diagnostic"}</h2>
       <div class="metric-row">
         <span><strong>Relevant found</strong><br>${score.hits}</span>
         <span><strong>Noise selected</strong><br>${score.falsePositives}</span>
         <span><strong>Relevant missed</strong><br>${score.misses}</span>
       </div>
-      <p class="muted-copy">QA simulation only: this is not a live-model benchmark and does not contribute to Attention Capacity or general-IQ claims.</p>
+      <p class="muted-copy">The point is not to prove that AI helped or harmed you from one exercise. It is to practise a division of labour in which the tool can expand possibilities while you retain the goal, evidence judgement and final selection. QA simulation only; not a live-model benchmark.</p>
       <button type="button" class="platform-button ai-next" data-ai-action="restart">Try again</button>`;
   }
 
