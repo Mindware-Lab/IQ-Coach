@@ -1,0 +1,190 @@
+/* IQ Mindware website -> app title and action system.
+   Reference: trident-g-platform / websites/iqmindware / synergy-home-v2.css
+   and menu-page-spacing.css. No downloaded fonts. No stimulus rules. */
+.studio {
+  --st-display: ui-rounded, "Trebuchet MS", system-ui, sans-serif;
+  --st-body: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --st-title-ink: #0a2550;
+  --st-title-colour: #0b7fee;
+  /* Same blue/cyan/green direction, darkened for large-text contrast on white. */
+  --st-title-gradient: linear-gradient(90deg, #0b7fee 0%, #138fcd 58%, #469c26 100%);
+  --st-button-ink: #0a2550;
+  --st-button-fill: linear-gradient(135deg, #22aaff 0%, #5edbfa 100%);
+  --st-button-border: #badff8;
+}
+.studio:not(.st-training) { font-family: var(--st-body); }
+.studio:not(.st-training) :is(h2, h3),
+.studio .st-brand,
+.studio .st-next-card > strong {
+  font-family: var(--st-display);
+  font-weight: 850;
+  letter-spacing: -.038em;
+}
+.studio:not(.st-training) h2 {
+  color: var(--st-title-ink);
+  line-height: 1.07;
+  letter-spacing: -.047em;
+  text-wrap: balance;
+}
+.studio .st-brand-heading { overflow: visible; padding-bottom: .04em; }
+.studio .st-heading-accent { color: var(--st-title-colour); }
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+  .studio .st-heading-accent {
+    background-image: var(--st-title-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+}
+.studio .st-heading-line { display: block; margin-top: .07em; }
+.studio .st-heading-mark::after {
+  content: "";
+  display: block;
+  width: min(5.2em, 58%);
+  height: 5px;
+  margin: .18em 0 .1em .02em;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #8ee400, #ccff66);
+  transform: rotate(-1.5deg);
+  transform-origin: left center;
+}
+.studio .st-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #126caf;
+  font-family: var(--st-body);
+  font-weight: 800;
+  line-height: 1.45;
+  letter-spacing: .12em;
+}
+.studio .st-eyebrow::before {
+  content: "";
+  width: 22px;
+  height: 3px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  background: linear-gradient(90deg, #0b82ee, #9be600);
+}
+/* Node identity stays in the titles, surfaces and indexed network. */
+.studio[data-node="relational-memory"] { --st-title-colour:#7247ce; --st-title-gradient:linear-gradient(90deg,#6540c6,#9862c7); }
+.studio[data-node="binding-memory"] { --st-title-colour:#b13c78; --st-title-gradient:linear-gradient(90deg,#ab306a,#c35b7b); }
+.studio[data-node="path-horizon"] { --st-title-colour:#b15b19; --st-title-gradient:linear-gradient(90deg,#a9510c,#bc7125); }
+.studio[data-node="knowledge-access"] { --st-title-colour:#8e6a06; --st-title-gradient:linear-gradient(90deg,#856200,#9c7c19); }
+.studio[data-node="generative-search"] { --st-title-colour:#08785a; --st-title-gradient:linear-gradient(90deg,#08785a,#26946d); }
+.studio[data-node="reasoning"] { --st-title-colour:#08707a; --st-title-gradient:linear-gradient(90deg,#08707a,#1d939e); }
+/* Immersive narrative copy uses a light version, never dark text on dark art. */
+.studio .st-welcome,
+.studio .st-next-card {
+  --st-title-colour: #74d9ff;
+  --st-title-gradient: linear-gradient(90deg, #6dccff 0%, #71e2ef 57%, #c6f780 100%);
+}
+.studio .st-welcome h2 { color: #fff; line-height: 1.04; }
+.studio .st-welcome .st-eyebrow { color: #c9eaff; }
+.studio .st-welcome .st-heading-mark::after { margin-top: .2em; }
+.studio .st-welcome .st-lede {
+  color: #c9edff;
+  font-family: var(--st-display);
+  font-weight: 800;
+  letter-spacing: -.015em;
+}
+.studio .st-story-copy h2 { font-size: 44px; }
+.studio .st-reading h2 { font-size: 36px; }
+.studio .st-home-heading h2,
+.studio .st-network-page h2 { font-size: 38px; }
+.studio .st-next-card > strong { line-height: 1.08; }
+.studio .st-world-card h3 { line-height: 1.12; }
+/* Bright blue primary + white secondary. Navy labels contrast across the fill. */
+.studio .st-button,
+.studio .st-ai .platform-button {
+  background: var(--st-button-fill);
+  color: var(--st-button-ink);
+  -webkit-text-fill-color: currentColor;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-family: var(--st-display);
+  font-weight: 800;
+  letter-spacing: -.018em;
+  box-shadow: 0 7px 20px #1686e326, inset 0 1px 0 #ffffff66;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+.studio .st-button-secondary,
+.studio .st-ai .platform-button.secondary-button {
+  color: #0e548b;
+  background: #fff;
+  border-color: var(--st-button-border);
+  box-shadow: 0 5px 16px #145f9210;
+}
+.studio.st-immersive .st-button {
+  color: #0e548b;
+  background: #fff;
+  border-color: #fff;
+  box-shadow: 0 7px 22px #061e4330;
+}
+.studio .st-button svg { transition: transform 160ms ease; }
+.studio .st-button:hover:not(:disabled),
+.studio .st-ai .platform-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px #1686e32d, inset 0 1px 0 #ffffff66;
+}
+.studio .st-button:hover:not(:disabled) svg { transform: translateX(3px); }
+.studio .st-button:active:not(:disabled) { transform: translateY(0); }
+.studio .st-button:focus-visible,
+.studio .st-ai .platform-button:focus-visible {
+  outline: 3px solid #1266b5;
+  outline-offset: 4px;
+}
+.studio.st-immersive .st-button:focus-visible { outline-color:#c4eeff; }
+.studio .st-button:disabled,
+.studio .st-ai .platform-button:disabled { box-shadow:none; cursor:not-allowed; }
+/* Only the response controls change colour; their position and timing do not. */
+.studio .attention-response button {
+  background: var(--st-button-fill);
+  color: var(--st-button-ink);
+  -webkit-text-fill-color: currentColor;
+  box-shadow: 0 5px 15px #1686e320;
+  transition: none;
+}
+.studio .attention-response button:disabled {
+  background: #e7f3fb;
+  color: #597086;
+  box-shadow: none;
+}
+.studio .attention-response .attention-key { background: #ffffff80; }
+/* No title embellishment, motion or changed font inside the scored display. */
+.studio.st-training .st-eyebrow { display:block; }
+.studio.st-training .st-eyebrow::before { content:none; }
+@media (max-width:720px) {
+  .studio .st-story-copy h2 { font-size:36px; }
+  .studio .st-reading h2 { font-size:33px; }
+  .studio .st-home-heading h2,
+  .studio .st-network-page h2 { font-size:35px; }
+  .studio .st-welcome h2 { font-size:40px; }
+  .studio .st-heading-mark::after { height:4px; }
+}
+@media (max-width:359px) {
+  .studio .st-story-copy h2,
+  .studio .st-reading h2 { font-size:31px; }
+  .studio .st-home-heading h2,
+  .studio .st-network-page h2 { font-size:32px; }
+  .studio .st-welcome h2 { font-size:36px; }
+}
+@media (prefers-reduced-motion:no-preference) {
+  .studio:not(.st-training) .st-brand-heading { animation:st-title-arrive 220ms ease-out both; }
+  @keyframes st-title-arrive { from { opacity:.7; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+}
+@media (prefers-reduced-motion:reduce) {
+  .studio .st-brand-heading,
+  .studio .st-button,
+  .studio .st-button svg { animation:none; transition:none; }
+}
+@media (forced-colors:active) {
+  .studio .st-heading-accent { background:none; color:CanvasText; -webkit-text-fill-color:currentColor; }
+  .studio .st-heading-mark::after,
+  .studio .st-eyebrow::before { background:CanvasText; }
+  .studio .st-button,
+  .studio .st-ai .platform-button,
+  .studio .attention-response button { background:ButtonFace; color:ButtonText; border:1px solid ButtonText; box-shadow:none; }
+}
