@@ -43,5 +43,15 @@ describe("Attention node contract", () => {
     expect(attentionModule.strategy.targetCues.length).toBeGreaterThan(0);
     expect(attentionModule.strategy.antiCues.length).toBeGreaterThan(0);
     expect(attentionModule.missions.length).toBeGreaterThanOrEqual(3);
+    expect(attentionModule.journey?.chapterTitle).toBe("Signal");
+    expect(attentionModule.journey?.humanQuestion).toBe("What matters now?");
+    expect(attentionModule.journey?.portableMove).toContain("Find the signal");
+    expect(Object.keys(attentionModule.journey?.beats ?? {})).toEqual([
+      "anchor",
+      "perturb",
+      "return",
+      "salience",
+      "bank",
+    ]);
   });
 });
