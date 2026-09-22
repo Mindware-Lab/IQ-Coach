@@ -151,7 +151,8 @@
 .network-node-attention { --node-color: var(--node-attention); }
 .network-node-relational-memory { --node-color: var(--node-relational); }
 .network-node-binding-memory { --node-color: var(--node-binding); }
-.network-node-predictive-mapping { --node-color: var(--node-predictive); }
+.network-node-path-horizon { --node-color: var(--node-path); }
+.network-node-knowledge-access { --node-color: var(--node-knowledge); }
 .network-node-generative-search { --node-color: var(--node-generative); }
 .network-node-reasoning { --node-color: var(--node-reasoning); }
 
@@ -207,7 +208,8 @@
 }
 .node-hero-relational-memory { border-top-color: var(--node-relational); }
 .node-hero-binding-memory { border-top-color: var(--node-binding); }
-.node-hero-predictive-mapping { border-top-color: var(--node-predictive); }
+.node-hero-path-horizon { border-top-color: var(--node-path); }
+.node-hero-knowledge-access { border-top-color: var(--node-knowledge); }
 .node-hero-reasoning { border-top-color: var(--node-reasoning); }
 
 .csn-row {
@@ -1019,4 +1021,243 @@
   .node-home-screen .node-hero .section-kicker { margin-bottom: 2px; }
   .attention-product-strip { display: none; }
   .session-preflight .apr-journey-head { display: none; }
+}
+
+
+/* Adaptive-intelligence journey orchestration — content-first QA pass. */
+.orientation-screen,
+.chapter-screen {
+  justify-content: space-between;
+  gap: 18px;
+  padding: clamp(18px, 4vmin, 30px);
+  overflow: auto;
+}
+.orientation-copy,
+.chapter-lockup { max-width: 640px; }
+.orientation-screen h2,
+.chapter-screen h2 { font-size: clamp(1.7rem, 4.5vmin, 2.7rem); }
+.orientation-agency {
+  margin: -.1rem 0 1rem;
+  color: var(--iqm-cyan-dark);
+  font-size: 1.05rem;
+  font-weight: 850;
+}
+.orientation-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin-top: 18px;
+}
+.orientation-flow span {
+  padding: 8px 10px;
+  border: 1px solid var(--iqm-border);
+  border-radius: 10px;
+  background: #f8fbfe;
+  color: var(--iqm-blue);
+  font-size: .66rem;
+  font-weight: 900;
+  letter-spacing: .05em;
+}
+.orientation-flow b { color: var(--iqm-lime-readable); }
+.orientation-actions { display: flex; flex-wrap: wrap; gap: 9px; }
+
+.chapter-question {
+  display: grid;
+  gap: 4px;
+  margin: 14px 0;
+  padding: 12px 14px;
+  border-left: 4px solid var(--iqm-cyan);
+  border-radius: 0 12px 12px 0;
+  background: #eef8ff;
+}
+.chapter-question span,
+.portable-move span {
+  color: var(--iqm-muted);
+  font-size: .62rem;
+  font-weight: 900;
+  letter-spacing: .1em;
+}
+.chapter-question strong { font-size: 1.15rem; }
+
+.node-home-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: auto;
+}
+.node-human-question {
+  color: var(--iqm-blue);
+  font-weight: 850;
+}
+.journey-progress {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0,1fr));
+  gap: 5px;
+  margin-top: 8px;
+}
+.journey-progress span {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  padding: 6px 4px;
+  border-radius: 10px;
+  background: #f5f8fb;
+  color: var(--iqm-muted);
+  font-size: .59rem;
+  font-weight: 850;
+  text-align: center;
+}
+.journey-progress b {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #d6e3ed;
+  border-radius: 50%;
+  background: #fff;
+}
+.journey-progress .is-complete { color: #52760b; background: #f5fde7; }
+.journey-progress .is-complete b { border-color: #a9d65c; background: var(--iqm-lime); color: #355800; }
+.journey-progress .is-current { color: var(--iqm-blue); background: #eef8ff; }
+.journey-progress .is-current b { border-color: var(--iqm-cyan); box-shadow: 0 0 0 3px rgba(34,170,255,.1); }
+
+.journey-primary-card {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  gap: 16px;
+  align-items: center;
+  border-left: 5px solid var(--iqm-cyan);
+}
+.journey-primary-card h3 { font-size: clamp(1.1rem, 2.8vmin, 1.45rem); }
+.journey-primary-card p { margin-bottom: 0; color: var(--iqm-muted); }
+
+.node-tools summary {
+  cursor: pointer;
+  color: var(--iqm-blue);
+  font-weight: 850;
+}
+.node-tools[open] summary { margin-bottom: 10px; }
+.node-tool-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 7px;
+}
+.node-tool-link { display: grid; place-items: center; text-decoration: none; }
+
+.banked-rules-card { border-left: 4px solid var(--iqm-lime-readable); }
+.banked-rules-card blockquote {
+  margin-bottom: 7px;
+  font-size: .78rem;
+  line-height: 1.45;
+}
+.banked-rules-card blockquote:last-child { margin-bottom: 0; }
+
+.move-intro {
+  margin-bottom: 7px;
+  color: var(--iqm-blue);
+  font-weight: 760;
+}
+.preflight-question {
+  margin: 0 0 5px;
+  color: var(--iqm-blue);
+}
+.preflight-rationale {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #f5f8fb;
+  font-size: .8rem !important;
+}
+.portable-move {
+  display: grid;
+  gap: 4px;
+  margin: 12px 0;
+  padding: 12px 14px;
+  border-left: 4px solid var(--iqm-lime-readable);
+  border-radius: 0 12px 12px 0;
+  background: #f7fde9;
+}
+.portable-move strong { font-size: 1rem; }
+.training-result-block {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--iqm-border);
+}
+
+.planned-list { gap: 9px; }
+.planned-mission {
+  display: grid;
+  gap: 6px;
+  padding: 10px 11px;
+  border: 1px solid var(--iqm-border);
+  border-radius: 12px;
+  background: #f8fbfe;
+}
+.planned-mission p { margin: 0; font-size: .78rem; color: var(--iqm-muted); }
+.mission-reviewed {
+  color: #52760b;
+  font-size: .72rem;
+  font-weight: 900;
+}
+
+.mission-checkin-screen,
+.bank-screen { overflow: auto; }
+.mission-checkin-context {
+  margin: 9px 0 12px;
+  padding: 10px 12px;
+  border-left: 4px solid var(--iqm-cyan);
+  background: #f5faff;
+  border-radius: 0 12px 12px 0;
+}
+.mission-checkin-context p { margin: 4px 0 0; font-size: .8rem; color: var(--iqm-muted); }
+.mission-checkin-form,
+.bank-rule-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 9px;
+}
+.mission-checkin-form label,
+.bank-rule-form label {
+  display: grid;
+  gap: 4px;
+  color: var(--iqm-ink);
+  font-size: .75rem;
+  font-weight: 800;
+}
+.mission-checkin-form select,
+.mission-checkin-form textarea,
+.bank-rule-form textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--iqm-border);
+  border-radius: 10px;
+  padding: 8px 9px;
+  background: #fff;
+  color: var(--iqm-ink);
+  font: inherit;
+  font-size: .78rem;
+}
+.mission-checkin-form label:last-of-type,
+.bank-rule-form label,
+.mission-checkin-form .platform-button,
+.bank-rule-form .platform-button,
+.form-message { grid-column: 1 / -1; }
+.form-message { min-height: 1em; margin: 0; color: var(--iqm-error); font-size: .72rem; }
+
+@media (max-width: 720px) {
+  .journey-primary-card {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .journey-primary-card .platform-button { width: 100%; }
+  .node-tool-grid { grid-template-columns: 1fr 1fr; }
+  .orientation-flow span { font-size: .59rem; }
+  .orientation-flow b { display: none; }
+  .mission-checkin-form,
+  .bank-rule-form { grid-template-columns: 1fr; }
+  .mission-checkin-form label,
+  .bank-rule-form label,
+  .mission-checkin-form .platform-button,
+  .bank-rule-form .platform-button,
+  .form-message { grid-column: 1; }
 }
