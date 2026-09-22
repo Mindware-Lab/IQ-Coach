@@ -39,7 +39,7 @@ export interface GameAdapter {
   pause?(): void;
   resume?(): void;
   destroy(): void;
-  setWrapper(wrapper: "A" | "B"): void;
+  setWrapper(wrapper: "A" | "B" | "C"): void;
   getTrainingSummary(): TrainingSummary;
   onComplete?(handler: GameCompleteHandler | null): void;
 }
