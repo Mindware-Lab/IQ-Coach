@@ -1,5 +1,6 @@
 import "./theme/tokens.css";
 import "./theme/studio.css";
+import "./theme/studio-art.css";
 import { bootstrapStudio } from "./app/studio";
 import { attentionModule } from "./modules/attention/module";
 import { generativeSearchModule } from "./modules/generative-search/module";
