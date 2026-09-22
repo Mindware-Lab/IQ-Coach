@@ -1,7 +1,7 @@
 import type { WrapperMode } from "../../../types/game";
 
 export type AttentionFrame = "absolute" | "relational";
-export type AttentionCarrier = "arrow" | "flow";
+export type AttentionCarrier = "arrow" | "flow" | "emotion";
 export type AttentionRelation = "left" | "right" | "out" | "in";
 export type AttentionRatio = "5:0" | "4:1" | "3:2";
 
@@ -22,7 +22,7 @@ export interface AttentionTrial {
   id: string;
   sessionId: string;
   trialIndex: number;
-  wrapper: "A" | "B";
+  wrapper: "A" | "B" | "C";
   carrier: AttentionCarrier;
   frame: AttentionFrame;
   ratio: AttentionRatio;
@@ -98,16 +98,18 @@ function relationOptions(frame: AttentionFrame): AttentionRelation[] {
   return frame === "absolute" ? ["left", "right"] : ["out", "in"];
 }
 
-function carrierForWrapper(wrapper: "A" | "B"): AttentionCarrier {
-  return wrapper === "A" ? "arrow" : "flow";
+function carrierForWrapper(wrapper: "A" | "B" | "C"): AttentionCarrier {
+  if (wrapper === "B") return "flow";
+  if (wrapper === "C") return "emotion";
+  return "arrow";
 }
 
 export function wrapperForTrial(
   wrapperMode: WrapperMode,
   sessionSeed: string,
   trialIndex: number,
-): "A" | "B" {
-  if (wrapperMode === "A" || wrapperMode === "B") return wrapperMode;
+): "A" | "B" | "C" {
+  if (wrapperMode === "A" || wrapperMode === "B" || wrapperMode === "C") return wrapperMode;
   const random = mulberry32(hashSeed(`${sessionSeed}:wrapper:${trialIndex}`));
   return random() < 0.5 ? "A" : "B";
 }
@@ -119,7 +121,7 @@ export function wrapperForTrial(
 export function generateAttentionTrial(input: {
   sessionId: string;
   trialIndex: number;
-  wrapper: "A" | "B";
+  wrapper: "A" | "B" | "C";
   frame?: AttentionFrame;
   ratio?: AttentionRatio;
   exposureMs?: number;
