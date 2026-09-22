@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { attentionModule } from "../../src/modules/attention/module";
+import { ATTENTION_QA_SEQUENCE, attentionModule } from "../../src/modules/attention/module";
 import {
   ATTENTION_DONOR_MIGRATION,
   donorConstructBelongsInAttention,
@@ -18,6 +18,8 @@ describe("Attention node contract", () => {
     expect(donorConstructBelongsInAttention("BSE")).toBe(false);
     expect(attentionModule.wrappers.A.id).not.toBe(attentionModule.wrappers.B.id);
     expect(attentionModule.wrappers.A.invariant).toBe(attentionModule.wrappers.B.invariant);
+    expect(attentionModule.wrappers.C?.invariant).toBe(attentionModule.wrappers.A.invariant);
+    expect(ATTENTION_QA_SEQUENCE).toEqual(["A", "B", "A", "C", "A"]);
   });
 
   it("never generates binding fields in the Attention trial type", () => {
