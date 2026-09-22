@@ -81,6 +81,7 @@ export interface IQMNodeModule {
   };
   progression: WrapperProgressionConfig;
   strategy: StrategyConfig;
+  journey?: NodeJourneyConfig;
   missions: MissionTemplate[];
   nicheExamples?: Partial<Record<NicheChangeType, string[]>>;
   gTrackKeys?: string[];
