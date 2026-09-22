@@ -1,0 +1,34 @@
+/* Artwork is separate from task geometry: never style the scored stimulus SVG. */
+.studio[data-node="attention"] .st-art {
+  background-image: url('/art/signal-waves.svg');
+  background-size: cover;
+  background-position: center 56%;
+}
+.st-welcome-art {
+  background-image: linear-gradient(180deg, #ffffff00, #07355500 75%, #0c33582b), url('/art/signal-waves.svg');
+  background-size: 100% 100%, cover;
+  background-position: center, center;
+}
+.st-icon-button { width: 44px; height: 44px; }
+.st-text { min-height: 44px; }
+.st-actions { flex-wrap: wrap; }
+.st-actions > .st-button { flex-shrink: 0; }
+.st-main { overscroll-behavior: contain; }
+/* The diagram and screen copy are readable even if decorative assets fail. */
+.studio[data-node="attention"] .st-art { background-color: #c6edff; }
+@media (max-width: 720px) {
+  .st-welcome-art {
+    background-image: linear-gradient(180deg, #07325500 18%, #092f5255 42%, #0c3358f5 77%), url('/art/signal-waves.svg');
+    background-size: 100% 100%, cover;
+    background-position: center, center;
+  }
+  .studio[data-node="attention"] .st-story > .st-art { background-size: cover; background-position: center 49%; }
+  .studio[data-node="attention"] .st-mission-illustration > .st-art,
+  .studio[data-node="attention"] .st-bank-illustration > .st-art { background-size: cover; background-position: center 62%; }
+  .st-actions > .st-text { min-height: 44px; }
+  .st-actions > .st-button-secondary { min-height: 44px; }
+  .st-game-header > .st-icon-button { width: 44px; height: 44px; }
+}
+@media (forced-colors: active) {
+  .studio[data-node="attention"] .st-art, .st-welcome-art { background: Canvas; }
+}
