@@ -21,7 +21,8 @@
   --node-attention: #22aaff;
   --node-relational: #7b61ff;
   --node-binding: #ff6f91;
-  --node-predictive: #18b7a0;
+  --node-path: #18b7a0;
+  --node-knowledge: #56c7d9;
   --node-generative: #ffb84d;
   --node-reasoning: #2764b7;
 }
