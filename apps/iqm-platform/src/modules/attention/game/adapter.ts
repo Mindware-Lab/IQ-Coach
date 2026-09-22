@@ -40,9 +40,12 @@ const BLOCKS_PER_SESSION = 12;
 const TRIALS_PER_BLOCK = 2;
 const TRIALS_PER_SESSION = BLOCKS_PER_SESSION * TRIALS_PER_BLOCK;
 const SFX_STORAGE_KEY = "iqm-platform:attention-sfx:v1";
-const SFX_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-  ? "https://www.iqmindware.com/assets/sfx/attention-control"
-  : "/assets/sfx/attention-control";
+function sfxBasePath(): string {
+  if (typeof window === "undefined") return "/assets/sfx/attention-control";
+  return window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "https://www.iqmindware.com/assets/sfx/attention-control"
+    : "/assets/sfx/attention-control";
+}
 
 const SFX: Record<string, { file: string; gain: number }> = {
   correct: { file: "correct.mp3", gain: 0.85 },
@@ -460,7 +463,7 @@ export class AttentionGameAdapter implements GameAdapter {
 
   private preloadSfx(): void {
     for (const event of Object.values(SFX)) {
-      const audio = new Audio(`${SFX_BASE}/${event.file}`);
+      const audio = new Audio(`${sfxBasePath()}/${event.file}`);
       audio.preload = "auto";
     }
   }
@@ -468,7 +471,7 @@ export class AttentionGameAdapter implements GameAdapter {
   private playSfx(eventId: keyof typeof SFX): void {
     if (!this.sfxEnabled || this.sfxMasterGain <= 0) return;
     const event = SFX[eventId];
-    const audio = new Audio(`${SFX_BASE}/${event.file}`);
+    const audio = new Audio(`${sfxBasePath()}/${event.file}`);
     audio.volume = Math.max(0, Math.min(1, this.sfxMasterGain * event.gain));
     void audio.play().catch(() => {
       // Missing/blocked audio must never delay or invalidate a trial.
