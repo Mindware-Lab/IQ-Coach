@@ -9,13 +9,14 @@ import {
 import { loadCurrentUserEntitlements } from "../core/entitlements/repository";
 import { unlockedNodeIds, type EntitlementRecord } from "../core/entitlements/store";
 import { loadBrowserMissions, saveBrowserMission } from "../core/persistence/missions";
-import { loadBrowserNodeProgress, saveBrowserNodeProgress } from "../core/persistence/progress";
+import { clearBrowserNodeProgress, loadBrowserNodeProgress, saveBrowserNodeProgress } from "../core/persistence/progress";
 import { loadBrowserStrategyStatus, saveBrowserStrategyStatus } from "../core/persistence/strategy";
 import { recordProgressionSession } from "../core/progression/engine";
 import { PHASE_PUBLIC_LABELS, wrapperModeForPhase } from "../core/progression/session";
 import { NODE_CATALOGUE } from "../modules/catalogue";
 import { getNodeModule, isNodeModuleRegistered } from "../modules/registry";
-import type { TrainingSummary } from "../types/game";
+import { ATTENTION_QA_SEQUENCE } from "../modules/attention/module";
+import type { TrainingSummary, WrapperMode } from "../types/game";
 import type { Mission } from "../types/mission";
 import type { NodeId } from "../types/node";
 import type { ProgressionDecision } from "../types/progression";
@@ -80,9 +81,12 @@ function pagerMarkup(currentPage: number, totalPages: number): string {
 }
 
 export async function bootstrap(root: HTMLElement): Promise<void> {
+  const attentionQa = import.meta.env.VITE_IQM_ATTENTION_QA === "true";
+  const qaAccess = import.meta.env.VITE_IQM_QA_ACCESS === "true";
   const localPreview =
-    !isPlatformAuthConfigured &&
-    (window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost");
+    qaAccess ||
+    (!isPlatformAuthConfigured &&
+      (window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost"));
 
   const state: RuntimeState = {
     selectedNodeId: null,
@@ -96,10 +100,10 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     missionPage: 0,
   };
 
-  const userKey = (): string => state.user?.id ?? "local-preview";
+  const userKey = (): string => state.user?.id ?? (qaAccess ? "qa-preview" : "local-preview");
 
   function accountMarkup(): string {
-    if (localPreview) return `<div class="phase-pill">Preview</div>`;
+    if (localPreview) return `<div class="phase-pill">${qaAccess ? "QA access" : "Preview"}</div>`;
     if (!isPlatformAuthConfigured) return `<div class="phase-pill">Setup needed</div>`;
     if (!state.user) return "";
     return `<div class="account-chip"><span>${escapeHtml(state.user.email ?? "Signed in")}</span><button type="button" class="text-button" data-action="sign-out">Sign out</button></div>`;
@@ -150,6 +154,38 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     });
   }
 
+  function attentionQaStep(totalSessions: number): { wrapperMode: WrapperMode; label: string } | null {
+    const wrapperMode = ATTENTION_QA_SEQUENCE[totalSessions] as WrapperMode | undefined;
+    if (!wrapperMode) return null;
+    if (wrapperMode === "B") return { wrapperMode, label: "Optic Flow perturbation" };
+    if (wrapperMode === "C") return { wrapperMode, label: "Emotional Distractor perturbation" };
+    return { wrapperMode, label: totalSessions === 0 ? "Core anchor" : "Core return" };
+  }
+
+  function recordAttentionQaSession(
+    current: ReturnType<typeof loadBrowserNodeProgress>,
+    summary: TrainingSummary,
+    wrapperMode: WrapperMode,
+  ): ProgressionDecision {
+    const next = {
+      ...current,
+      phase: "A_TRAIN" as const,
+      sessionsInPhase: 0,
+      totalSessions: current.totalSessions + 1,
+      aScores: [...current.aScores],
+      bScores: [...current.bScores],
+      aReopenScores: [...current.aReopenScores],
+    };
+    if (wrapperMode === "A") next.aScores.push(summary.progressionScore);
+    if (wrapperMode === "B") next.bScores.push(summary.progressionScore);
+    return {
+      previousPhase: current.phase,
+      nextPhase: next.phase,
+      phaseChanged: current.phase !== next.phase,
+      reason: "Forced APR QA sequence. Transition is for product testing, not plateau evidence.",
+      state: next,
+    };
+  }
   function networkNode(nodeId: NodeId): string {
     const ui = NETWORK_NODE_UI[nodeId];
     const registered = isNodeModuleRegistered(nodeId);
@@ -305,7 +341,13 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
   function renderTraining(nodeId: NodeId): void {
     const module = getNodeModule(nodeId);
     const progress = loadBrowserNodeProgress(userKey(), nodeId);
-    const wrapperMode = wrapperModeForPhase(progress.phase);
+    const qaStep = attentionQa && nodeId === "attention" ? attentionQaStep(progress.totalSessions) : null;
+    if (attentionQa && nodeId === "attention" && !qaStep) {
+      state.notice = "Five-session Attention QA programme complete. Restart it from the Attention screen if you want another run.";
+      renderNodeHome(nodeId);
+      return;
+    }
+    const wrapperMode = qaStep?.wrapperMode ?? wrapperModeForPhase(progress.phase);
     const sessionId = randomId(`${nodeId}-session`);
     state.gamePaused = false;
     root.innerHTML = shell(`<section class="panel training-shell"><div class="session-heading"><div><button type="button" class="text-button" data-action="node-home">← Exit</button><p class="section-kicker">TRAIN</p><h2>${escapeHtml(module.title)}</h2></div><button type="button" class="text-button" data-action="pause">Pause</button></div><div id="game-host"></div></section>`);
@@ -313,7 +355,9 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     if (!host) throw new Error("Missing game host.");
     module.game.onComplete?.((summary) => {
       const current = loadBrowserNodeProgress(userKey(), nodeId);
-      const decision = recordProgressionSession(current, { summary, wrapperMode, dataQualityAdequate: summary.validTrials >= 10 }, module.progression);
+      const decision = attentionQa && nodeId === "attention"
+        ? recordAttentionQaSession(current, summary, wrapperMode)
+        : recordProgressionSession(current, { summary, wrapperMode, dataQualityAdequate: summary.validTrials >= 10 }, module.progression);
       saveBrowserNodeProgress(userKey(), nodeId, decision.state);
       module.game.destroy();
       renderSessionSummary(nodeId, summary, decision);
@@ -327,7 +371,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     const module = getNodeModule(nodeId);
     root.innerHTML = shell(`<section class="panel screen-panel session-complete-panel"><p class="section-kicker">DONE</p><h2>Nice work</h2>
       <div class="metric-row">${(summary.displayMetrics ?? []).map((metric) => `<span><strong>${escapeHtml(metric.label)}</strong><br>${escapeHtml(metric.value)}</span>`).join("")}</div>
-      <p><strong>Next:</strong> ${escapeHtml(PHASE_PUBLIC_LABELS[decision.state.phase])}</p><p class="muted-copy">Your training path adapts as you go.</p>
+      <p><strong>Next:</strong> ${escapeHtml(attentionQa && nodeId === "attention" ? (attentionQaStep(decision.state.totalSessions)?.label ?? "QA programme complete") : PHASE_PUBLIC_LABELS[decision.state.phase])}</p><p class="muted-copy">${attentionQa && nodeId === "attention" ? "QA transitions are forced so you can inspect the whole APR sequence quickly." : "Your training path adapts as you go."}</p>
       <div class="button-row"><button type="button" class="platform-button" data-action="node-home">Back to ${escapeHtml(module.shortTitle)}</button><button type="button" class="platform-button secondary-button" data-action="strategy">Use it in real life</button></div></section>`);
   }
 
@@ -377,6 +421,12 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     }
     if (action === "train" && state.selectedNodeId) {
       renderTraining(state.selectedNodeId);
+      return;
+    }
+    if (action === "reset-attention-qa") {
+      clearBrowserNodeProgress(userKey(), "attention");
+      state.notice = "Attention QA progress reset.";
+      renderNodeHome("attention");
       return;
     }
     if (action === "strategy" && state.selectedNodeId) {
