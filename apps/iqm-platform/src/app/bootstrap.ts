@@ -370,7 +370,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
           <h2>${escapeHtml(attentionAction?.title ?? "Choose your first capacity")}</h2>
           <p>${escapeHtml(attentionAction?.copy ?? "Start with one cognitive capacity and build from there.")}</p>
         </div>
-        ${attentionReady && attentionAction ? `<button type="button" class="platform-button today-button" ${attentionAction.attrs}>${escapeHtml(attentionAction.label)}</button>` : ""}
+        ${attentionReady && attentionAction ? `<button type="button" class="platform-button today-button" data-open-node="attention">${escapeHtml(attentionAction.label)}</button>` : ""}
       </section>
       <section class="panel network-panel">
         <div class="section-heading"><div><p class="section-kicker">YOUR ADAPTIVE NETWORK</p><h2>Seven capacities. One learning system.</h2></div></div>
@@ -703,36 +703,28 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     const progress = loadBrowserNodeProgress(userKey(), nodeId);
     const qaStep = attentionQa && nodeId === "attention" ? attentionQaStep(progress.totalSessions) : null;
     const sessionNumber = progress.totalSessions + 1;
-    let title = "Ready to train?";
-    let copy = "Stay with the task goal and let the difficulty adapt around you.";
-    let invariant = "The target operation stays the same.";
-    if (qaStep?.wrapperMode === "A" && sessionNumber === 1) {
-      title = "Build your core";
-      copy = "This is the stable Attention game we return to after each challenge.";
-      invariant = "Find whether the majority of signals point IN or OUT.";
-    } else if (qaStep?.wrapperMode === "B") {
-      title = "Same skill. New surface.";
-      copy = "Static arrows become optic-flow motion for one session. The visual carrier changes; the majority relation does not.";
-      invariant = "Keep extracting the same IN / OUT majority relation.";
-    } else if (qaStep?.wrapperMode === "C") {
-      title = "Hold the goal under salience";
-      copy = "Faces will compete for attention, but they never contain information needed for the answer.";
-      invariant = "Ignore the face. Use only the arrow majority.";
-    } else if (qaStep?.wrapperMode === "A") {
-      title = "Return to the core";
-      copy = "You are back on the stable game. This is where the full protocol measures recovery and possible frontier extension.";
-      invariant = "Recover the same IN / OUT majority operation.";
+    const beat = nodeId === "attention" ? attentionJourneyBeat(progress.totalSessions) : null;
+    const title = beat?.title ?? "Ready to train?";
+    const copy = beat?.copy ?? "Stay with the task goal and let the difficulty adapt around you.";
+    let invariant = "The target cognitive operation stays the same.";
+    if (nodeId === "attention") {
+      if (qaStep?.wrapperMode === "B") invariant = "Keep extracting the same IN / OUT majority relation from motion.";
+      else if (qaStep?.wrapperMode === "C") invariant = "Ignore the face. Use only the arrow majority.";
+      else invariant = "Find whether the majority of signals point IN or OUT.";
     }
     root.innerHTML = shell(`<section class="panel screen-panel session-preflight">
-      <button type="button" class="text-button" data-action="node-home">← Attention</button>
-      <div class="preflight-stage"><span class="preflight-index">${sessionNumber}</span><span>SESSION ${sessionNumber}${attentionQa && nodeId === "attention" ? " OF 5" : ""}</span></div>
+      <button type="button" class="text-button" data-action="node-home">← ${escapeHtml(module.shortTitle)}</button>
+      <div class="preflight-stage"><span class="preflight-index">${sessionNumber}</span><span>${beat ? escapeHtml(beat.shortLabel.toUpperCase()) : `SESSION ${sessionNumber}`}</span></div>
+      ${module.journey ? `<p class="preflight-question"><strong>${escapeHtml(module.journey.humanQuestion)}</strong></p>` : ""}
       <h2>${escapeHtml(title)}</h2>
       <p>${escapeHtml(copy)}</p>
+      ${sessionNumber === 1 && module.journey ? `<p class="preflight-rationale">${escapeHtml(module.journey.abstractRationale)}</p>` : ""}
       <div class="preflight-invariant"><span>WHAT STAYS</span><strong>${escapeHtml(invariant)}</strong></div>
       ${nodeId === "attention" ? attentionQaJourneyMarkup(progress.totalSessions) : ""}
-      <div class="preflight-footer"><span class="muted-copy">About ${escapeHtml(module.estimatedSessionMinutes)} min in this QA build</span><button type="button" class="platform-button" data-action="start-session">Start session →</button></div>
+      <div class="preflight-footer"><span class="muted-copy">Scored training stays separate from strategy, mission and G Track evidence.</span><button type="button" class="platform-button" data-action="start-session">Start session →</button></div>
     </section>`);
   }
+
   function renderTraining(nodeId: NodeId): void {
     const module = getNodeModule(nodeId);
     const progress = loadBrowserNodeProgress(userKey(), nodeId);
@@ -764,10 +756,30 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
 
   function renderSessionSummary(nodeId: NodeId, summary: TrainingSummary, decision: ProgressionDecision): void {
     const module = getNodeModule(nodeId);
-    root.innerHTML = shell(`<section class="panel screen-panel session-complete-panel"><p class="section-kicker">DONE</p><h2>Nice work</h2>
-      <div class="metric-row">${(summary.displayMetrics ?? []).map((metric) => `<span><strong>${escapeHtml(metric.label)}</strong><br>${escapeHtml(metric.value)}</span>`).join("")}</div>
-      <p><strong>Next:</strong> ${escapeHtml(attentionQa && nodeId === "attention" ? (attentionQaStep(decision.state.totalSessions)?.label ?? "QA programme complete") : PHASE_PUBLIC_LABELS[decision.state.phase])}</p><p class="muted-copy">${attentionQa && nodeId === "attention" ? "QA transitions are forced so you can inspect the whole APR sequence quickly." : "Your training path adapts as you go."}</p>
-      <div class="button-row"><button type="button" class="platform-button" data-action="node-home">Back to ${escapeHtml(module.shortTitle)}</button><button type="button" class="platform-button secondary-button" data-action="strategy">Use it in real life</button></div></section>`);
+    const completedIndex = Math.max(0, decision.state.totalSessions - 1);
+    const beat = nodeId === "attention" ? attentionJourneyBeat(completedIndex) : null;
+    const nextBeat = nodeId === "attention" && decision.state.totalSessions < ATTENTION_QA_SEQUENCE.length
+      ? attentionJourneyBeat(decision.state.totalSessions)
+      : null;
+    const firstSession = decision.state.totalSessions === 1;
+    const salienceSession = nodeId === "attention" && completedIndex === 3;
+    root.innerHTML = shell(`<section class="panel screen-panel session-complete-panel">
+      <p class="section-kicker">WHAT YOU JUST PRACTISED</p>
+      <h2>${escapeHtml(beat?.debriefTitle ?? "Session complete")}</h2>
+      <p>${escapeHtml(beat?.debriefCopy ?? "You completed another focused training session.")}</p>
+      ${module.journey ? `<div class="portable-move"><span>THE MOVE</span><strong>${escapeHtml(module.journey.portableMove)}</strong></div>` : ""}
+      <div class="training-result-block">
+        <p class="section-kicker">TRAINING RESULT</p>
+        <div class="metric-row">${(summary.displayMetrics ?? []).map((metric) => `<span><strong>${escapeHtml(metric.label)}</strong><br>${escapeHtml(metric.value)}</span>`).join("")}</div>
+        <p class="muted-copy">This result describes performance in the training task. It is not by itself evidence of real-world transfer or increased general intelligence.</p>
+      </div>
+      <p><strong>Next:</strong> ${escapeHtml(firstSession ? "extract the portable move" : nextBeat?.title ?? "take the skill into another context")}</p>
+      <div class="button-row">
+        <button type="button" class="platform-button" data-action="${firstSession ? "strategy" : "node-home"}">${firstSession ? "Learn the move" : "Continue journey"} →</button>
+        ${salienceSession ? '<button type="button" class="platform-button secondary-button" data-action="ai-practice">Try the AI niche challenge</button>' : ""}
+        ${!firstSession ? '<button type="button" class="platform-button secondary-button" data-action="strategy">Review the move</button>' : ""}
+      </div>
+    </section>`);
   }
 
   async function loadEntitlementsForUser(): Promise<void> {
@@ -789,18 +801,53 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
   root.addEventListener("click", (event) => {
     const rawTarget = event.target;
     if (!(rawTarget instanceof Element)) return;
-    const target = rawTarget.closest<HTMLElement>("[data-action], [data-open-node], [data-plan-mission], [data-strategy-status], [data-strategy-page], [data-mission-page]");
+    const target = rawTarget.closest<HTMLElement>("[data-action], [data-open-node], [data-plan-mission], [data-mission-checkin], [data-bank-mission], [data-strategy-status], [data-strategy-page], [data-mission-page]");
     if (!target) return;
 
     const openNodeId = target.dataset.openNode as NodeId | undefined;
     if (openNodeId) {
-      renderNodeHome(openNodeId);
+      state.selectedNodeId = openNodeId;
+      const module = isNodeModuleRegistered(openNodeId) ? getNodeModule(openNodeId) : null;
+      if (module?.journey && !hasSeenNodeChapter(userKey(), openNodeId)) renderChapterIntro(openNodeId);
+      else renderNodeHome(openNodeId);
+      return;
+    }
+
+    const checkinMissionId = target.dataset.missionCheckin;
+    if (checkinMissionId && state.selectedNodeId) {
+      renderMissionCheckin(state.selectedNodeId, checkinMissionId);
+      return;
+    }
+    const bankMissionId = target.dataset.bankMission;
+    if (bankMissionId && state.selectedNodeId) {
+      renderBankLearning(state.selectedNodeId, bankMissionId);
       return;
     }
 
     const action = target.dataset.action;
     if (action === "sign-out") {
       void signOutPlatformUser();
+      return;
+    }
+    if (action === "orientation-attention") {
+      markPlatformOrientationSeen(userKey());
+      state.selectedNodeId = "attention";
+      if (hasSeenNodeChapter(userKey(), "attention")) renderNodeHome("attention");
+      else renderChapterIntro("attention");
+      return;
+    }
+    if (action === "orientation-dashboard") {
+      markPlatformOrientationSeen(userKey());
+      renderDashboard();
+      return;
+    }
+    if (action === "chapter" && state.selectedNodeId) {
+      renderChapterIntro(state.selectedNodeId);
+      return;
+    }
+    if (action === "chapter-begin" && state.selectedNodeId) {
+      markNodeChapterSeen(userKey(), state.selectedNodeId);
+      renderNodeHome(state.selectedNodeId);
       return;
     }
     if (action === "dashboard") {
@@ -869,8 +916,8 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     if (strategyStatus && state.selectedNodeId) {
       const next = strategyStatus === "practising" ? "practising" : "learned";
       saveBrowserStrategyStatus(userKey(), state.selectedNodeId, next);
-      state.notice = next === "learned" ? "Strategy saved." : "Practice mode on.";
-      renderStrategy(state.selectedNodeId);
+      state.notice = next === "learned" ? "Portable move saved. Next: use it in a real situation." : "Practice mode on. Next: use it in a real situation.";
+      renderNodeHome(state.selectedNodeId);
       return;
     }
 
@@ -888,17 +935,18 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
         nicheChangeType: template.suggestedNicheChanges?.[0] ?? "none",
         status: "planned",
         createdAt: new Date().toISOString(),
+        dueAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       };
       saveBrowserMission(userKey(), mission);
-      state.notice = "Mission added.";
-      state.missionPage = module.missions.length;
-      renderMissions(state.selectedNodeId);
+      state.notice = "Reality mission planned. Try it outside the app, then return and tell the app what happened.";
+      renderNodeHome(state.selectedNodeId);
     }
   });
 
   async function hydrate(): Promise<void> {
     if (localPreview) {
-      renderDashboard();
+      if (hasSeenPlatformOrientation(userKey())) renderDashboard();
+      else renderOrientation();
       return;
     }
     if (!isPlatformAuthConfigured) {
@@ -911,7 +959,8 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       return;
     }
     await loadEntitlementsForUser();
-    renderDashboard();
+    if (hasSeenPlatformOrientation(userKey())) renderDashboard();
+    else renderOrientation();
   }
 
   onPlatformAuthChange((user) => {
@@ -928,7 +977,8 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
         return;
       }
       await loadEntitlementsForUser();
-      renderDashboard();
+      if (hasSeenPlatformOrientation(userKey())) renderDashboard();
+      else renderOrientation();
     })();
   });
 
