@@ -236,6 +236,18 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     `);
   }
 
+  function attentionQaJourneyMarkup(totalSessions: number): string {
+    if (!attentionQa) return "";
+    const labels = ["Core", "Optic", "Return", "Emotion", "Return"];
+    const icons = ["◎", "↗", "↩", "◉", "↩"];
+    return `<div class="apr-journey" aria-label="Five-session Attention QA journey">
+      <div class="apr-journey-head"><span><strong>APR walkthrough</strong> · QA forced sequence</span><span>${Math.min(totalSessions, 5)}/5 complete</span></div>
+      <div class="apr-rail">${labels.map((label, index) => {
+        const stateClass = index < totalSessions ? "is-complete" : index === totalSessions ? "is-current" : "is-upcoming";
+        return `<div class="apr-step ${stateClass}"><span class="apr-dot">${index < totalSessions ? "✓" : icons[index]}</span><span>${label}</span></div>`;
+      }).join("")}</div>
+    </div>`;
+  }
   function renderNodeHome(nodeId: NodeId): void {
     if (!isNodeModuleRegistered(nodeId) || !state.unlocked.has(nodeId)) return;
     state.selectedNodeId = nodeId;
@@ -250,11 +262,12 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     const strategyLabel = strategyStatus === "not-started" ? "Ready" : strategyStatus === "practising" ? "Practising" : "Learned";
     root.innerHTML = shell(`
       <section class="panel node-hero node-hero-${nodeId}"><button type="button" class="text-button" data-action="dashboard">← Network</button><p class="section-kicker">${escapeHtml(module.shortTitle.toUpperCase())}</p><h2>${escapeHtml(module.title)}</h2><p>${escapeHtml(module.shortDescription)}</p>
-        <div class="csn-row"><span><strong>Train</strong>${escapeHtml(capacityStatus)}</span><span><strong>Use</strong>${escapeHtml(strategyLabel)}</span><span><strong>Apply</strong>${escapeHtml(nicheStatus)}</span></div></section>
+        <div class="csn-row"><span><strong>Train</strong>${escapeHtml(capacityStatus)}</span><span><strong>Use</strong>${escapeHtml(strategyLabel)}</span><span><strong>Apply</strong>${escapeHtml(nicheStatus)}</span></div>${nodeId === "attention" ? attentionQaJourneyMarkup(progress.totalSessions) : ""}</section>
       <section class="journey-grid">
-        <article class="panel journey-card journey-train"><p class="section-kicker">TRAIN</p><h3>Build the skill</h3><p>${attentionQa && nodeId === "attention" ? escapeHtml(attentionQaStep(progress.totalSessions)?.label ?? "Five-session QA complete") : escapeHtml(PHASE_PUBLIC_LABELS[progress.phase])}</p><button type="button" class="platform-button" data-action="${attentionQa && nodeId === "attention" && progress.totalSessions >= ATTENTION_QA_SEQUENCE.length ? "reset-attention-qa" : "train"}">${attentionQa && nodeId === "attention" && progress.totalSessions >= ATTENTION_QA_SEQUENCE.length ? "Restart QA" : "Train now"}</button></article>
-        <article class="panel journey-card journey-use"><p class="section-kicker">USE</p><h3>Make it portable</h3><blockquote>${escapeHtml(module.strategy.handle)}</blockquote><button type="button" class="platform-button secondary-button" data-action="strategy">Learn the cue</button></article>
-        <article class="panel journey-card journey-apply"><p class="section-kicker">APPLY</p><h3>Try it for real</h3><p>${nodeId === "attention" ? "Practise finding the signal with AI, or choose a real-life mission." : (missions.filter((mission) => mission.status === "planned").length ? "Mission ready" : "Choose one small mission")}</p><div class="journey-button-stack">${nodeId === "attention" ? `<button type="button" class="platform-button" data-action="ai-practice">AI practice</button>` : ""}<button type="button" class="platform-button secondary-button" data-action="missions">Pick a mission</button></div></article>
+        <article class="panel journey-card journey-train"><div class="journey-card-top"><span class="journey-icon" aria-hidden="true">◎</span><span class="journey-badge">ADAPTIVE</span></div><p class="section-kicker">TRAIN</p><h3>Build the skill</h3><p>${attentionQa && nodeId === "attention" ? escapeHtml(attentionQaStep(progress.totalSessions)?.label ?? "Five-session QA complete") : escapeHtml(PHASE_PUBLIC_LABELS[progress.phase])}</p><button type="button" class="platform-button" data-action="${attentionQa && nodeId === "attention" && progress.totalSessions >= ATTENTION_QA_SEQUENCE.length ? "reset-attention-qa" : "train"}">${attentionQa && nodeId === "attention" && progress.totalSessions >= ATTENTION_QA_SEQUENCE.length ? "Restart QA" : "Train now"}</button></article>
+        <article class="panel journey-card journey-use"><div class="journey-card-top"><span class="journey-icon" aria-hidden="true">✦</span><span class="journey-badge">TRANSFER CUE</span></div><p class="section-kicker">USE</p><h3>Make it portable</h3><blockquote>${escapeHtml(module.strategy.handle)}</blockquote><button type="button" class="platform-button secondary-button" data-action="strategy">Learn the cue</button></article>
+        <article class="panel journey-card journey-apply"><div class="journey-card-top"><span class="journey-icon" aria-hidden="true">AI</span><span class="journey-badge">HUMAN × AI</span></div><p class="section-kicker">APPLY</p><h3>Try it for real</h3><p>${nodeId === "attention" ? "Practise finding the signal with AI, or choose a real-life mission." : (missions.filter((mission) => mission.status === "planned").length ? "Mission ready" : "Choose one small mission")}</p><div class="journey-button-stack">${nodeId === "attention" ? `<button type="button" class="platform-button" data-action="ai-practice">AI practice</button>` : ""}<button type="button" class="platform-button secondary-button" data-action="missions">Pick a mission</button></div></article>
+      ${nodeId === "attention" ? `<section class="attention-product-strip"><article><span class="product-strip-icon">◈</span><div><strong>Arena</strong><small>Leaderboard competitions · 3 official attempts</small></div><span class="soft-chip">Preview</span></article><article><span class="product-strip-icon">↗</span><div><strong>Transfer view</strong><small>Recovery and frontier signals</small></div><span class="soft-chip">QA</span></article><article><span class="product-strip-icon">G</span><div><strong>Independent check</strong><small>Kept separate from game performance</small></div><span class="soft-chip">G Track</span></article></section>` : ""}
       </section>`);
   }
 
@@ -358,7 +371,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     const wrapperMode = qaStep?.wrapperMode ?? wrapperModeForPhase(progress.phase);
     const sessionId = randomId(`${nodeId}-session`);
     state.gamePaused = false;
-    root.innerHTML = shell(`<section class="panel training-shell"><div class="session-heading"><div><button type="button" class="text-button" data-action="node-home">← Exit</button><p class="section-kicker">TRAIN</p><h2>${escapeHtml(module.title)}</h2></div><button type="button" class="text-button" data-action="pause">Pause</button></div><div id="game-host"></div></section>`);
+    root.innerHTML = shell(`<section class="panel training-shell"><div class="session-heading"><div><button type="button" class="text-button" data-action="node-home">← Exit</button><p class="section-kicker">TRAIN · SESSION ${Math.min(progress.totalSessions + 1, attentionQa && nodeId === "attention" ? 5 : progress.totalSessions + 1)}${attentionQa && nodeId === "attention" ? " / 5" : ""}</p><h2>${escapeHtml(module.title)}</h2><p class="training-context">${escapeHtml(attentionQa && nodeId === "attention" ? (qaStep?.label ?? "") : PHASE_PUBLIC_LABELS[progress.phase])}</p></div><button type="button" class="text-button pause-control" data-action="pause">Pause</button></div><div id="game-host"></div></section>`);
     const host = root.querySelector<HTMLElement>("#game-host");
     if (!host) throw new Error("Missing game host.");
     module.game.onComplete?.((summary) => {
