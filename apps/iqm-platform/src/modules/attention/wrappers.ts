@@ -2,12 +2,13 @@ import type { WrapperConfig } from "../../types/node";
 
 export const ATTENTION_WRAPPERS: { A: WrapperConfig; B: WrapperConfig; C: WrapperConfig } = {
   A: {
+    // Retain the legacy identifier; this edit corrects display copy, not stored history.
     id: "attention-arrow-absolute-v1",
-    publicName: "Static directions",
-    description: "Brief static arrow patterns requiring rapid extraction of the majority direction.",
+    publicName: "Static / Polar",
+    description: "Brief radial arrow patterns requiring rapid extraction of the IN / OUT majority.",
     invariant: "Identify the response-relevant majority relation while resisting competing items.",
-    surfaceChange: "Static arrow carriers with a simple left/right response frame.",
-    instructions: "Find the direction shown by most of the arrows.",
+    surfaceChange: "Static arrows point towards or away from the centre. The response frame is IN / OUT, not left/right.",
+    instructions: "Find whether most arrows point IN towards the centre or OUT away from it.",
   },
   B: {
     id: "attention-flow-polar-v1",
