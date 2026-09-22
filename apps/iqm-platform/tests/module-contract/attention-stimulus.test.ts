@@ -55,6 +55,22 @@ describe("Attention donor stimulus fidelity", () => {
     expect(mask.match(/class="optic-mask-dot"/g)?.length).toBe(120);
   });
 
+  it("renders an irrelevant emotional face while preserving the polar arrow task", () => {
+    const trial = generateAttentionTrial({
+      sessionId: "render-c",
+      trialIndex: 3,
+      wrapper: "C",
+      frame: "relational",
+      ratio: "4:1",
+      exposureMs: 500,
+    });
+    const stimulus = renderAttentionStimulus(trial, "stimulus");
+    expect(trial.responseOptions).toEqual(["out", "in"]);
+    expect(stimulus).toContain('class="emotion-face"');
+    expect(stimulus.match(/points="-5,-4 5,0 -5,4 -2,0"/g)?.length).toBe(5);
+    expect(stimulus).toContain('data-emotion="afraid"');
+  });
+
   it("locks the donor presentation timings", () => {
     expect(ATTENTION_DONOR_TIMING).toEqual({
       readyDelayMs: 350,
