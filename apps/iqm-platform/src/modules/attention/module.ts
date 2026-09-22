@@ -1,6 +1,7 @@
 import type { IQMNodeModule } from "../../types/node";
 import { attentionGameAdapter } from "./game/adapter";
 import {
+  ATTENTION_JOURNEY,
   ATTENTION_MISSIONS,
   ATTENTION_NICHE_EXAMPLES,
   ATTENTION_STRATEGY,
@@ -32,6 +33,7 @@ export const attentionModule: IQMNodeModule = {
     mixedSelection: "mini-block",
   },
   strategy: ATTENTION_STRATEGY,
+  journey: ATTENTION_JOURNEY,
   missions: ATTENTION_MISSIONS,
   nicheExamples: ATTENTION_NICHE_EXAMPLES,
   entitlement: {
