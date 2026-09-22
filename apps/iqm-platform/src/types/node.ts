@@ -53,6 +53,7 @@ export interface IQMNodeModule {
   wrappers: {
     A: WrapperConfig;
     B: WrapperConfig;
+    C?: WrapperConfig;
   };
   progression: WrapperProgressionConfig;
   strategy: StrategyConfig;
