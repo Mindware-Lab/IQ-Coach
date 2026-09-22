@@ -12,7 +12,8 @@
 .st-icon-button { width: 44px; height: 44px; }
 .st-text { min-height: 44px; }
 .st-actions { flex-wrap: wrap; }
-.st-actions > .st-button { flex-shrink: 0; }
+.st-actions > .st-button { flex-shrink: 0; max-width: 100%; min-width: 0; white-space: normal; }
+.st-actions > :is(button, a) { max-width: 100%; overflow-wrap: anywhere; }
 .st-main { overscroll-behavior: contain; }
 /* The diagram and screen copy are readable even if decorative assets fail. */
 .studio[data-node="attention"] .st-art { background-color: #c6edff; }
