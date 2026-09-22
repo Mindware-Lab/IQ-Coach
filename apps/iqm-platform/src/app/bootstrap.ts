@@ -42,12 +42,12 @@ interface NetworkNodeUi {
 }
 
 const NETWORK_NODE_UI: Record<NodeId, NetworkNodeUi> = {
-  attention: { label: "Attention", shortLabel: "Attention", x: 50, y: 8 },
-  "relational-memory": { label: "Relations", shortLabel: "Relations", x: 82, y: 28 },
-  "binding-memory": { label: "Binding", shortLabel: "Binding", x: 82, y: 72 },
-  reasoning: { label: "Reasoning", shortLabel: "Reasoning", x: 50, y: 92 },
-  "generative-search": { label: "Ideas", shortLabel: "Ideas", x: 18, y: 72 },
-  "predictive-mapping": { label: "Prediction", shortLabel: "Prediction", x: 18, y: 28 },
+  attention: { label: "Attention", shortLabel: "Attention", x: 50, y: 12 },
+  "relational-memory": { label: "Relations", shortLabel: "Relations", x: 80, y: 31 },
+  "binding-memory": { label: "Binding", shortLabel: "Binding", x: 80, y: 69 },
+  reasoning: { label: "Reasoning", shortLabel: "Reasoning", x: 50, y: 88 },
+  "generative-search": { label: "Ideas", shortLabel: "Ideas", x: 20, y: 69 },
+  "predictive-mapping": { label: "Prediction", shortLabel: "Prediction", x: 20, y: 31 },
 };
 
 function escapeHtml(value: unknown): string {
@@ -268,8 +268,8 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
         <article class="panel journey-card journey-train"><div class="journey-card-top"><span class="journey-icon" aria-hidden="true">◎</span><span class="journey-badge">ADAPTIVE</span></div><p class="section-kicker">TRAIN</p><h3>Build the skill</h3><p>${attentionQa && nodeId === "attention" ? escapeHtml(attentionQaStep(progress.totalSessions)?.label ?? "Five-session QA complete") : escapeHtml(PHASE_PUBLIC_LABELS[progress.phase])}</p><button type="button" class="platform-button" data-action="${attentionQa && nodeId === "attention" && progress.totalSessions >= ATTENTION_QA_SEQUENCE.length ? "reset-attention-qa" : "train"}">${attentionQa && nodeId === "attention" && progress.totalSessions >= ATTENTION_QA_SEQUENCE.length ? "Restart QA" : "Train now"}</button></article>
         <article class="panel journey-card journey-use"><div class="journey-card-top"><span class="journey-icon" aria-hidden="true">✦</span><span class="journey-badge">TRANSFER CUE</span></div><p class="section-kicker">USE</p><h3>Make it portable</h3><blockquote>${escapeHtml(module.strategy.handle)}</blockquote><button type="button" class="platform-button secondary-button" data-action="strategy">Learn the cue</button></article>
         <article class="panel journey-card journey-apply"><div class="journey-card-top"><span class="journey-icon" aria-hidden="true">AI</span><span class="journey-badge">HUMAN × AI</span></div><p class="section-kicker">APPLY</p><h3>Try it for real</h3><p>${nodeId === "attention" ? "Practise finding the signal with AI, or choose a real-life mission." : (missions.filter((mission) => mission.status === "planned").length ? "Mission ready" : "Choose one small mission")}</p><div class="journey-button-stack">${nodeId === "attention" ? `<button type="button" class="platform-button" data-action="ai-practice">AI practice</button>` : ""}<button type="button" class="platform-button secondary-button" data-action="missions">Pick a mission</button></div></article>
-      ${nodeId === "attention" ? `<section class="attention-product-strip"><article><span class="product-strip-icon">◈</span><div><strong>Arena</strong><small>Leaderboard competitions · 3 official attempts</small></div><span class="soft-chip">Preview</span></article><article><span class="product-strip-icon">↗</span><div><strong>Transfer view</strong><small>Recovery and frontier signals</small></div><span class="soft-chip">QA</span></article><article><span class="product-strip-icon">G</span><div><strong>Independent check</strong><small>Kept separate from game performance</small></div><span class="soft-chip">G Track</span></article></section>` : ""}
-      </section>`);
+      </section>
+      ${nodeId === "attention" ? `<section class="attention-product-strip"><article><span class="product-strip-icon">◈</span><div><strong>Arena</strong><small>Leaderboard competitions · 3 official attempts</small></div><span class="soft-chip">Preview</span></article><article><span class="product-strip-icon">↗</span><div><strong>Transfer view</strong><small>Recovery and frontier signals</small></div><span class="soft-chip">QA</span></article><article><span class="product-strip-icon">G</span><div><strong>Independent check</strong><small>Kept separate from game performance</small></div><span class="soft-chip">G Track</span></article></section>` : ""}`);
   }
 
   function renderStrategy(nodeId: NodeId): void {
