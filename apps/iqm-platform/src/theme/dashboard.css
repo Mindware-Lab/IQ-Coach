@@ -940,3 +940,28 @@
     gap: 5px;
   }
 }
+
+/* Dashboard fit: keep the whole orbital network inside the available panel. */
+.network-map {
+  flex: 1 1 auto;
+  width: min(100%, 360px, 40dvh);
+  max-width: 100%;
+  max-height: 100%;
+}
+@media (max-height: 760px) and (min-width: 721px) {
+  .network-map { width: min(100%, 320px, 37dvh); }
+  .network-panel { padding: 12px 14px; }
+  .network-note { font-size: .68rem; }
+}
+@media (max-width: 720px) {
+  .today-panel { padding: 9px 10px; }
+  .today-panel h2 { font-size: 1.05rem; margin-bottom: .2rem; }
+  .today-panel p { font-size: .72rem; }
+  .network-panel { padding: 9px 10px; }
+  .network-panel h2 { font-size: 1.02rem; margin-bottom: 0; }
+  .network-map { width: min(100%, 300px, 33dvh); }
+  .network-note { display: none; }
+  .gtrack-panel { padding: 8px 10px; }
+  .gtrack-panel h2 { font-size: .95rem; }
+  .gtrack-panel p:last-child { font-size: .68rem; }
+}
