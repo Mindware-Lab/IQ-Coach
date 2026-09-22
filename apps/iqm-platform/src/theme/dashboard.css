@@ -464,3 +464,5 @@
   .gtrack-mark { width: 38px; height: 38px; border-radius: 12px; }
   .strategy-grid li { font-size: 0.7rem; margin-bottom: 0.2rem; }
 }
+.journey-button-stack { margin-top: auto; display: grid; gap: 7px; }
+.journey-button-stack .platform-button { margin-top: 0; }
