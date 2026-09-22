@@ -16,6 +16,7 @@ import { PHASE_PUBLIC_LABELS, wrapperModeForPhase } from "../core/progression/se
 import { NODE_CATALOGUE } from "../modules/catalogue";
 import { getNodeModule, isNodeModuleRegistered } from "../modules/registry";
 import { ATTENTION_QA_SEQUENCE } from "../modules/attention/module";
+import { mountAttentionAiPractice } from "../modules/attention/aiPracticeView";
 import type { TrainingSummary, WrapperMode } from "../types/game";
 import type { Mission } from "../types/mission";
 import type { NodeId } from "../types/node";
@@ -222,7 +223,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     root.innerHTML = shell(`
       <section class="panel today-panel">
         <div class="today-copy"><p class="section-kicker">TODAY</p><h2>${attentionReady ? "Train Attention" : "Choose your first coach"}</h2>
-          ${attentionReady ? `<p>${escapeHtml(PHASE_PUBLIC_LABELS[attentionProgress.phase])} · Session ${attentionProgress.totalSessions + 1}</p>` : `<p>Start with one skill and build from there.</p>`}
+          ${attentionReady ? `<p>${escapeHtml(attentionQa ? (attentionQaStep(attentionProgress.totalSessions)?.label ?? "QA programme complete") : PHASE_PUBLIC_LABELS[attentionProgress.phase])} · Session ${Math.min(attentionProgress.totalSessions + 1, attentionQa ? ATTENTION_QA_SEQUENCE.length : attentionProgress.totalSessions + 1)}</p>` : `<p>Start with one skill and build from there.</p>`}
         </div>
         ${attentionReady ? `<button type="button" class="platform-button today-button" data-open-node="attention">Continue</button>` : ""}
       </section>
@@ -253,7 +254,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       <section class="journey-grid">
         <article class="panel journey-card journey-train"><p class="section-kicker">TRAIN</p><h3>Build the skill</h3><p>${attentionQa && nodeId === "attention" ? escapeHtml(attentionQaStep(progress.totalSessions)?.label ?? "Five-session QA complete") : escapeHtml(PHASE_PUBLIC_LABELS[progress.phase])}</p><button type="button" class="platform-button" data-action="${attentionQa && nodeId === "attention" && progress.totalSessions >= ATTENTION_QA_SEQUENCE.length ? "reset-attention-qa" : "train"}">${attentionQa && nodeId === "attention" && progress.totalSessions >= ATTENTION_QA_SEQUENCE.length ? "Restart QA" : "Train now"}</button></article>
         <article class="panel journey-card journey-use"><p class="section-kicker">USE</p><h3>Make it portable</h3><blockquote>${escapeHtml(module.strategy.handle)}</blockquote><button type="button" class="platform-button secondary-button" data-action="strategy">Learn the cue</button></article>
-        <article class="panel journey-card journey-apply"><p class="section-kicker">APPLY</p><h3>Try it for real</h3><p>${missions.filter((mission) => mission.status === "planned").length ? "Mission ready" : "Choose one small mission"}</p><button type="button" class="platform-button secondary-button" data-action="missions">Pick a mission</button></article>
+        <article class="panel journey-card journey-apply"><p class="section-kicker">APPLY</p><h3>Try it for real</h3><p>${nodeId === "attention" ? "Practise finding the signal with AI, or choose a real-life mission." : (missions.filter((mission) => mission.status === "planned").length ? "Mission ready" : "Choose one small mission")}</p><div class="journey-button-stack">${nodeId === "attention" ? `<button type="button" class="platform-button" data-action="ai-practice">AI practice</button>` : ""}<button type="button" class="platform-button secondary-button" data-action="missions">Pick a mission</button></div></article>
       </section>`);
   }
 
@@ -338,6 +339,13 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     </section>`);
   }
 
+  function renderAiPractice(): void {
+    state.selectedNodeId = "attention";
+    root.innerHTML = shell(`<section class="panel screen-panel ai-practice-screen"><button type="button" class="text-button" data-action="node-home">← Attention</button><div id="attention-ai-practice" class="ai-practice-host"></div></section>`);
+    const host = root.querySelector<HTMLElement>("#attention-ai-practice");
+    if (!host) throw new Error("Missing Attention AI practice host.");
+    mountAttentionAiPractice(host);
+  }
   function renderTraining(nodeId: NodeId): void {
     const module = getNodeModule(nodeId);
     const progress = loadBrowserNodeProgress(userKey(), nodeId);
@@ -421,6 +429,10 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     }
     if (action === "train" && state.selectedNodeId) {
       renderTraining(state.selectedNodeId);
+      return;
+    }
+    if (action === "ai-practice" && state.selectedNodeId === "attention") {
+      renderAiPractice();
       return;
     }
     if (action === "reset-attention-qa") {
