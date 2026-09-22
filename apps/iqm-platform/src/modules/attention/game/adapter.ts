@@ -127,7 +127,7 @@ export class AttentionGameAdapter implements GameAdapter {
   private sfxMasterGain = 0.75;
 
   private readonly keyHandler = (event: KeyboardEvent): void => {
-    if (this.stage !== "response" || !this.activeTrial) return;
+    if (this.paused || this.stage !== "response" || !this.activeTrial) return;
     const key = event.key.toLowerCase();
     if (key === "f" || key === "1") {
       event.preventDefault();
@@ -177,9 +177,8 @@ export class AttentionGameAdapter implements GameAdapter {
   pause(): void {
     this.paused = true;
     this.clearTimer();
-    if (this.container) {
-      this.container.innerHTML = `<div class="attention-message"><strong>Paused</strong><span>Resume when you are ready.</span></div>`;
-    }
+    // Preserve the control positions while hiding the paused stimulus.
+    this.renderStage();
   }
 
   resume(): void {
@@ -323,14 +322,15 @@ export class AttentionGameAdapter implements GameAdapter {
         : "Perturb · Emotional";
     const blockNumber = blockNumberForTrial(this.trialIndex);
     const regime = regimeForBlock(blockNumber);
-    const responseButtons = this.stage === "response"
-      ? `<div class="attention-response" role="group" aria-label="Choose majority relation">
+    // The controls remain visible throughout the trial. Availability still follows
+    // the original response window; early, feedback and paused input is ignored.
+    const canRespond = this.stage === "response" && !this.paused;
+    const responseButtons = `<div class="attention-response" role="group" aria-label="Choose majority relation">
           ${this.activeTrial.responseOptions
-            .map((relation, index) => `<button type="button" data-relation="${relation}"><span class="attention-key">${index === 0 ? "F" : "J"}</span>${relationLabel(relation)}</button>`)
+            .map((relation, index) => `<button type="button" data-relation="${relation}" ${canRespond ? "" : "disabled"} aria-disabled="${!canRespond}"><span class="attention-key">${index === 0 ? "F" : "J"}</span>${relationLabel(relation)}</button>`)
             .join("")}
-        </div>`
-      : "";
-    const feedback = this.stage === "feedback"
+        </div>`;
+    const feedback = this.stage === "feedback" && !this.paused
       ? `<div class="attention-feedback is-${this.feedback}" role="status" aria-label="${this.feedback === "correct" ? "Correct" : "Incorrect"}">${this.feedback === "correct" ? "✓" : "×"}</div>`
       : "";
 
@@ -344,9 +344,11 @@ export class AttentionGameAdapter implements GameAdapter {
           <input data-sound-volume aria-label="Sound volume" type="range" min="0" max="1" step="0.05" value="${this.sfxMasterGain}" />
         </span>
       </div>
-      <div class="attention-task-stage is-${this.stage}">
+      <div class="attention-task-stage is-${this.paused ? "paused" : this.stage}">
         <p class="attention-hint">${this.activeTrial.wrapper === "C" ? "Ignore the face. Find the majority relation." : "Do most signals point IN or OUT?"}</p>
-        ${renderAttentionStimulus(this.activeTrial, this.stage)}
+        ${this.paused
+          ? '<div class="stimulus-wrap"><div class="attention-message" role="status"><strong>Paused</strong><span>Resume when you are ready.</span></div></div>'
+          : renderAttentionStimulus(this.activeTrial, this.stage)}
         ${feedback}
         ${responseButtons}
       </div>
@@ -354,7 +356,7 @@ export class AttentionGameAdapter implements GameAdapter {
 
     this.bindSoundControls();
 
-    if (this.stage === "response") {
+    if (canRespond) {
       this.container.querySelectorAll<HTMLButtonElement>("[data-relation]").forEach((button) => {
         button.addEventListener("click", () => {
           const response = button.dataset.relation as AttentionRelation;
@@ -372,7 +374,7 @@ export class AttentionGameAdapter implements GameAdapter {
   }
 
   private answerTrial(response: AttentionRelation | null): void {
-    if (this.stage !== "response" || !this.activeTrial) return;
+    if (this.paused || this.stage !== "response" || !this.activeTrial) return;
     this.clearTimer();
     const responseAt = performance.now();
     const correct = response === this.activeTrial.correctResponse;
