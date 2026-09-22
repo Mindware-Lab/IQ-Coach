@@ -25,7 +25,9 @@
   line-height: 1.07;
   letter-spacing: -.047em;
   text-wrap: balance;
+  overflow-wrap: break-word;
 }
+.studio :is(.st-story-copy, .st-reading) { min-width: 0; }
 .studio .st-brand-heading { overflow: visible; padding-bottom: .04em; }
 .studio .st-heading-accent { color: var(--st-title-colour); }
 @supports (background-clip: text) or (-webkit-background-clip: text) {
@@ -156,6 +158,13 @@
 /* No title embellishment, motion or changed font inside the scored display. */
 .studio.st-training .st-eyebrow { display:block; }
 .studio.st-training .st-eyebrow::before { content:none; }
+@media (min-width:721px) and (max-height:720px) {
+  .studio .st-story-copy h2 { font-size:32px; }
+  .studio .st-reading h2 { font-size:28px; }
+  .studio .st-home-heading h2,
+  .studio .st-network-page h2 { font-size:32px; }
+  .studio .st-welcome h2 { font-size:36px; }
+}
 @media (max-width:720px) {
   .studio .st-story-copy h2 { font-size:36px; }
   .studio .st-reading h2 { font-size:33px; }
