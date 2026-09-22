@@ -250,11 +250,13 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     const checkins = loadBrowserMissionCheckins(userKey(), nodeId);
     const bankedRules = loadBrowserBankedRules(userKey(), nodeId);
     const pendingMission = [...missions].reverse().find((mission) =>
-      (mission.status === "planned" || mission.status === "reschedule") &&
-      !checkins.some((checkin) => checkin.missionId === mission.id),
+      mission.status === "reschedule" ||
+      (mission.status === "planned" &&
+        !checkins.some((checkin) => checkin.missionId === mission.id && checkin.opportunityOccurred)),
     );
     const unbankedMission = [...missions].reverse().find((mission) =>
-      checkins.some((checkin) => checkin.missionId === mission.id) &&
+      mission.status === "done" &&
+      checkins.some((checkin) => checkin.missionId === mission.id && checkin.opportunityOccurred) &&
       !hasBankedMissionRule(userKey(), nodeId, mission.id),
     );
     const input = {
@@ -360,29 +362,31 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     state.strategyPage = 0;
     state.missionPage = 0;
     const attentionReady = state.unlocked.has("attention") && isNodeModuleRegistered("attention");
-    const attentionProgress = loadBrowserNodeProgress(userKey(), "attention");
+    const attentionAction = attentionReady ? journeyAction("attention") : null;
     root.innerHTML = shell(`
       <section class="panel today-panel">
-        <div class="today-copy"><p class="section-kicker">TODAY</p><h2>${attentionReady ? "Train Attention" : "Choose your first coach"}</h2>
-          ${attentionReady ? `<p>${escapeHtml(attentionQa ? (attentionQaStep(attentionProgress.totalSessions)?.label ?? "QA programme complete") : PHASE_PUBLIC_LABELS[attentionProgress.phase])} · Session ${Math.min(attentionProgress.totalSessions + 1, attentionQa ? ATTENTION_QA_SEQUENCE.length : attentionProgress.totalSessions + 1)}</p>` : `<p>Start with one skill and build from there.</p>`}
+        <div class="today-copy">
+          <p class="section-kicker">${attentionAction?.kicker ?? "TODAY"}</p>
+          <h2>${escapeHtml(attentionAction?.title ?? "Choose your first capacity")}</h2>
+          <p>${escapeHtml(attentionAction?.copy ?? "Start with one cognitive capacity and build from there.")}</p>
         </div>
-        ${attentionReady ? `<button type="button" class="platform-button today-button" data-open-node="attention">Continue</button>` : ""}
+        ${attentionReady && attentionAction ? `<button type="button" class="platform-button today-button" ${attentionAction.attrs}>${escapeHtml(attentionAction.label)}</button>` : ""}
       </section>
       <section class="panel network-panel">
-        <div class="section-heading"><div><p class="section-kicker">YOUR NETWORK</p><h2>Six skills. One system.</h2></div></div>
+        <div class="section-heading"><div><p class="section-kicker">YOUR ADAPTIVE NETWORK</p><h2>Seven capacities. One learning system.</h2></div></div>
         ${networkMap()}
-        <p class="network-note">Tap a coloured node to open it. Links show your training map, not a score.</p>
+        <p class="network-note">The network is a navigation map, not a personal causal model. Open a released node to continue its journey.</p>
       </section>
-      <section class="panel gtrack-panel"><div class="gtrack-mark" aria-hidden="true">G</div><div><p class="section-kicker">G TRACK</p><h2>Check your progress</h2><p>Independent check-ins stay separate from your training scores.</p></div></section>
+      <section class="panel gtrack-panel"><div class="gtrack-mark" aria-hidden="true">G</div><div><p class="section-kicker">G TRACK</p><h2>Map how you adapt</h2><p>Adaptive profiles and cognitive benchmarks stay separate from training scores.</p></div></section>
     `);
   }
 
   function attentionQaJourneyMarkup(totalSessions: number): string {
     if (!attentionQa) return "";
-    const labels = ["Core", "Optic", "Return", "Emotion", "Return"];
-    const icons = ["◎", "↗", "↩", "◉", "↩"];
-    return `<div class="apr-journey" aria-label="Five-session Attention QA journey">
-      <div class="apr-journey-head"><span><strong>APR walkthrough</strong> · QA forced sequence</span><span>${Math.min(totalSessions, 5)}/5 complete</span></div>
+    const labels = ["Find signal", "New surface", "Recover", "Relevance", "Bank"];
+    const icons = ["◎", "↗", "↩", "◉", "◇"];
+    return `<div class="apr-journey" aria-label="Five-step Attention adaptive journey">
+      <div class="apr-journey-head"><span><strong>Attention journey</strong> · same operation across change</span><span>${Math.min(totalSessions, 5)}/5 trained</span></div>
       <div class="apr-rail">${labels.map((label, index) => {
         const stateClass = index < totalSessions ? "is-complete" : index === totalSessions ? "is-current" : "is-upcoming";
         return `<div class="apr-step ${stateClass}"><span class="apr-dot">${index < totalSessions ? "✓" : icons[index]}</span><span>${label}</span></div>`;
@@ -395,22 +399,44 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     state.strategyPage = 0;
     state.missionPage = 0;
     const module = getNodeModule(nodeId);
-    const progress = loadBrowserNodeProgress(userKey(), nodeId);
-    const strategyStatus = loadBrowserStrategyStatus(userKey(), nodeId);
-    const missions = loadBrowserMissions(userKey(), nodeId);
-    const capacityStatus = progress.totalSessions > 0 ? "In progress" : "Ready";
-    const nicheStatus = missions.some((mission) => mission.status === "planned") ? "Planned" : missions.length ? "Started" : "Ready";
-    const strategyLabel = strategyStatus === "not-started" ? "Ready" : strategyStatus === "practising" ? "Practising" : "Learned";
+    const snapshot = journeySnapshot(nodeId);
+    const action = journeyAction(nodeId);
+    const chapter = module.journey;
+    const latestRules = snapshot.bankedRules.slice(-2).reverse();
     root.innerHTML = shell(`
       <section class="node-home-screen">
-      <section class="panel node-hero node-hero-${nodeId}"><button type="button" class="text-button" data-action="dashboard">← Network</button><p class="section-kicker">${escapeHtml(module.shortTitle.toUpperCase())}</p><h2>${escapeHtml(module.title)}</h2><p>${escapeHtml(module.shortDescription)}</p>
-        <div class="csn-row"><span><strong>Train</strong>${escapeHtml(capacityStatus)}</span><span><strong>Use</strong>${escapeHtml(strategyLabel)}</span><span><strong>Apply</strong>${escapeHtml(nicheStatus)}</span></div>${nodeId === "attention" ? attentionQaJourneyMarkup(progress.totalSessions) : ""}</section>
-      <section class="journey-grid">
-        <article class="panel journey-card journey-train"><div class="journey-card-top"><span class="journey-icon" aria-hidden="true">◎</span><span class="journey-badge">ADAPTIVE</span></div><p class="section-kicker">TRAIN</p><h3>Build the skill</h3><p>${attentionQa && nodeId === "attention" ? escapeHtml(attentionQaStep(progress.totalSessions)?.label ?? "Five-session QA complete") : escapeHtml(PHASE_PUBLIC_LABELS[progress.phase])}</p><button type="button" class="platform-button" data-action="${attentionQa && nodeId === "attention" && progress.totalSessions >= ATTENTION_QA_SEQUENCE.length ? "reset-attention-qa" : "train"}">${attentionQa && nodeId === "attention" && progress.totalSessions >= ATTENTION_QA_SEQUENCE.length ? "Restart QA" : "Train now"}</button></article>
-        <article class="panel journey-card journey-use"><div class="journey-card-top"><span class="journey-icon" aria-hidden="true">✦</span><span class="journey-badge">TRANSFER CUE</span></div><p class="section-kicker">USE</p><h3>Make it portable</h3><blockquote>${escapeHtml(module.strategy.handle)}</blockquote><button type="button" class="platform-button secondary-button" data-action="strategy">Learn the cue</button></article>
-        <article class="panel journey-card journey-apply"><div class="journey-card-top"><span class="journey-icon" aria-hidden="true">AI</span><span class="journey-badge">HUMAN × AI</span></div><p class="section-kicker">APPLY</p><h3>Try it for real</h3><p>${nodeId === "attention" ? "Practise finding the signal with AI, or choose a real-life mission." : (missions.filter((mission) => mission.status === "planned").length ? "Mission ready" : "Choose one small mission")}</p><div class="journey-button-stack">${nodeId === "attention" ? `<button type="button" class="platform-button" data-action="ai-practice">AI practice</button>` : ""}<button type="button" class="platform-button secondary-button" data-action="missions">Pick a mission</button></div></article>
-      </section>
-      ${nodeId === "attention" ? `<section class="attention-product-strip"><article><span class="product-strip-icon">◈</span><div><strong>Arena</strong><small>Leaderboard competitions · 3 official attempts</small></div><span class="soft-chip">Preview</span></article><article><span class="product-strip-icon">↗</span><div><strong>Transfer view</strong><small>Recovery and frontier signals</small></div><span class="soft-chip">QA</span></article><article><span class="product-strip-icon">G</span><div><strong>Independent check</strong><small>Kept separate from game performance</small></div><span class="soft-chip">G Track</span></article></section>` : ""}
+        <section class="panel node-hero node-hero-${nodeId}">
+          <button type="button" class="text-button" data-action="dashboard">← Network</button>
+          <p class="section-kicker">${chapter ? `CHAPTER ${escapeHtml(chapter.chapterNumber)} · ${escapeHtml(chapter.chapterTitle.toUpperCase())}` : escapeHtml(module.shortTitle.toUpperCase())}</p>
+          <h2>${escapeHtml(module.title)}</h2>
+          <p class="node-human-question">${escapeHtml(chapter?.humanQuestion ?? module.shortDescription)}</p>
+          ${journeyProgressMarkup(nodeId)}
+          ${nodeId === "attention" ? attentionQaJourneyMarkup(snapshot.progress.totalSessions) : ""}
+        </section>
+
+        <section class="panel journey-primary-card">
+          <div>
+            <p class="section-kicker">${escapeHtml(action.kicker)}</p>
+            <h3>${escapeHtml(action.title)}</h3>
+            <p>${escapeHtml(action.copy)}</p>
+          </div>
+          <button type="button" class="platform-button" ${action.attrs}>${escapeHtml(action.label)} →</button>
+        </section>
+
+        ${latestRules.length ? `<section class="panel banked-rules-card"><p class="section-kicker">MY ADAPTIVE RULES</p>${latestRules.map((rule) => `<blockquote><strong>When</strong> ${escapeHtml(rule.whenCue)}<br><strong>I will</strong> ${escapeHtml(rule.actionRule)}</blockquote>`).join("")}</section>` : ""}
+
+        <details class="panel node-tools">
+          <summary>Explore ${escapeHtml(module.title)} tools</summary>
+          <div class="node-tool-grid">
+            <button type="button" class="secondary-button platform-button" data-action="train">Training</button>
+            <button type="button" class="secondary-button platform-button" data-action="strategy">Portable strategy</button>
+            ${nodeId === "attention" ? '<button type="button" class="secondary-button platform-button" data-action="ai-practice">AI niche challenge</button>' : ""}
+            <button type="button" class="secondary-button platform-button" data-action="missions">Reality missions</button>
+            ${attentionQa && nodeId === "attention" && snapshot.progress.totalSessions >= ATTENTION_QA_SEQUENCE.length ? '<button type="button" class="secondary-button platform-button" data-action="reset-attention-qa">Restart QA sequence</button>' : ""}
+            <a class="secondary-button platform-button node-tool-link" href="https://www.iqmindware.com/g-track-test-battery/" target="_blank" rel="noopener">G Track</a>
+          </div>
+          <p class="muted-copy">Training performance, real-world mission feedback and G Track measurement remain separate evidence layers.</p>
+        </details>
       </section>`);
   }
 
