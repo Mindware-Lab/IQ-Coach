@@ -965,3 +965,58 @@
   .gtrack-panel h2 { font-size: .95rem; }
   .gtrack-panel p:last-child { font-size: .68rem; }
 }
+
+/* Final fit guards after screen audit. */
+.network-map { width: min(100%, 310px, 36dvh); }
+@media (max-width: 720px) {
+  .network-map { width: min(100%, 250px, 29dvh); }
+
+  .session-preflight {
+    padding: 10px;
+    justify-content: flex-start;
+  }
+  .preflight-stage {
+    margin: 0 0 6px;
+  }
+  .session-preflight h2 {
+    font-size: 1.28rem;
+    margin-bottom: .35rem;
+  }
+  .session-preflight > p {
+    font-size: .76rem;
+    line-height: 1.35;
+    margin-bottom: .45rem;
+  }
+  .preflight-invariant {
+    margin: 5px 0;
+    padding: 8px 10px;
+  }
+  .preflight-invariant strong { font-size: .78rem; }
+  .session-preflight .apr-journey {
+    margin-top: 5px;
+    padding: 6px;
+  }
+  .preflight-footer {
+    margin-top: auto;
+    gap: 6px;
+  }
+  .preflight-footer .muted-copy { display: none; }
+
+  .strategy-screen,
+  .mission-screen,
+  .session-complete-panel {
+    padding: 10px;
+  }
+  .strategy-screen > .text-button,
+  .mission-screen > .text-button {
+    min-height: 34px;
+  }
+}
+@media (max-height: 680px) and (max-width: 720px) {
+  .topbar { padding-top: 7px; padding-bottom: 6px; }
+  .topbar .eyebrow { display: none; }
+  .node-home-screen .apr-journey-head { display: none; }
+  .node-home-screen .node-hero .section-kicker { margin-bottom: 2px; }
+  .attention-product-strip { display: none; }
+  .session-preflight .apr-journey-head { display: none; }
+}
