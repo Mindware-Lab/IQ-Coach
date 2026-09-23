@@ -2,6 +2,7 @@ import "./theme/tokens.css";
 import "./theme/studio.css";
 import "./theme/studio-art.css";
 import "./theme/studio-typography.css";
+import "./theme/studio-node-identities.css";
 import { mountStudioTypography } from "./app/studioTypography";
 import { bootstrapStudio } from "./app/studio";
 import { attentionModule } from "./modules/attention/module";

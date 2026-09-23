@@ -1,0 +1,21 @@
+@import url("./synergy-node-palette.css");
+/* The app already has the selected art palette. Make the network use the identity,
+   not the deeper text/action shade. Inline compatibility is scoped to node markers. */
+.studio .st-node[data-do="node:attention"] { --node-colour: var(--iqm-attention-control-identity) !important; }
+.studio .st-node[data-do="node:relational-memory"] { --node-colour: var(--iqm-relational-memory-identity) !important; }
+.studio .st-node[data-do="node:binding-memory"] { --node-colour: var(--iqm-binding-memory-identity) !important; }
+.studio .st-node[data-do="node:path-horizon"] { --node-colour: var(--iqm-path-horizon-identity) !important; }
+.studio .st-node[data-do="node:knowledge-access"] { --node-colour: var(--iqm-knowledge-access-identity) !important; }
+.studio .st-node[data-do="node:generative-search"] { --node-colour: var(--iqm-generative-search-identity) !important; }
+.studio .st-node[data-do="node:reasoning"] { --node-colour: var(--iqm-reasoning-identity) !important; }
+.studio .st-node > span { color: var(--iqm-palette-ink); }
+.studio .st-world-card { border-top: 4px solid var(--accent); }
+.studio .st-world-card > div:not(.st-art) { background: linear-gradient(160deg, var(--soft), #FFF 82%); }
+.studio:not(.st-training) .st-eyebrow { color: var(--action); }
+.studio:not(.st-training) .st-eyebrow::before { background: linear-gradient(90deg, var(--accent), var(--iqm-palette-lime)); }
+.studio .st-welcome .st-eyebrow,
+.studio .st-next-card .st-eyebrow { color: #C9EAFF; }
+@media (forced-colors: active) {
+  .studio .st-node > span { background: ButtonFace; color: ButtonText; border: 1px solid ButtonText; }
+  .studio .st-world-card { border-color: CanvasText; }
+}

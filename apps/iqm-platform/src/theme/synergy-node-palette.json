@@ -1,0 +1,14 @@
+{
+  "version": "2026-09-23.1",
+  "source": "User-approved Synergy IQ selected colour system",
+  "brand": {"blue":"#22AAFF","ink":"#0A2550","lime":"#CCFF66"},
+  "nodes": [
+    {"id":"attention-control","appId":"attention","title":"Attention Control","name":"Signal blue","identity":"#22AAFF","deep":"#1266B5","wash":"#EAF6FF","legacyClass":"attention"},
+    {"id":"relational-memory","appId":"relational-memory","title":"Relational Memory","name":"Lavender","identity":"#9B7AFF","deep":"#6441C6","wash":"#F1ECFF","legacyClass":"relational"},
+    {"id":"binding-memory","appId":"binding-memory","title":"Binding Memory","name":"Rose","identity":"#ED74AB","deep":"#A82E68","wash":"#FFF0F7","legacyClass":"binding"},
+    {"id":"path-horizon","appId":"path-horizon","title":"Path Horizon","name":"Apricot","identity":"#FFAB63","deep":"#A74E0B","wash":"#FFF2E5","legacyClass":"path"},
+    {"id":"knowledge-access","appId":"knowledge-access","title":"Knowledge Access","name":"Golden yellow","identity":"#F6C64B","deep":"#795900","wash":"#FFF8DA","legacyClass":"knowledge"},
+    {"id":"generative-search","appId":"generative-search","title":"Generative Search","name":"Jade","identity":"#31C89B","deep":"#08785A","wash":"#E7FAF3","legacyClass":"generative"},
+    {"id":"reasoning","appId":"reasoning","title":"Reasoning","name":"Lagoon teal","identity":"#40BEC7","deep":"#08707A","wash":"#E9F8F8","legacyClass":"reasoning"}
+  ]
+}
