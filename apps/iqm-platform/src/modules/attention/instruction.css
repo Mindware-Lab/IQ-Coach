@@ -1,0 +1,50 @@
+/* Teaching previews share game geometry. Scope layout changes to the briefing only. */
+.st-attention-examples {
+  width: 100%;
+  display: grid;
+  gap: 22px;
+}
+.st-attention-example {
+  margin: 0;
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  text-align: center;
+}
+.st-attention-example .stimulus-wrap {
+  width: min(100%, 260px);
+  height: auto;
+  max-height: none;
+  aspect-ratio: 1;
+  background-color: #fff;
+  border-radius: 20px;
+}
+.st-attention-example .stimulus-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1;
+  flex: initial;
+}
+.st-attention-example figcaption { max-width: 30ch; }
+.st-example-kicker {
+  display: block;
+  color: var(--action, #1266b5);
+  font: 800 10px/1.4 system-ui, sans-serif;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  margin-bottom: 7px;
+}
+.st-attention-example figcaption strong { display: block; font-size: 14px; line-height: 1.4; }
+.st-attention-example figcaption p { margin-top: 8px; color: #426581; font-size: 12px; line-height: 1.55; }
+.st-attention-example figcaption small { display: block; margin-top: 9px; color: #526c82; font-size: 11px; line-height: 1.4; }
+.st-attention-examples.is-mixed .stimulus-wrap { width: min(100%, 165px); }
+.st-attention-examples.is-mixed .st-attention-example { gap: 8px; }
+@media (max-width: 720px) {
+  .st-briefing-visual:has(.st-attention-examples) { padding: 14px 20px; }
+  .st-attention-example .stimulus-wrap { width: min(100%, 180px); }
+  .st-attention-example { gap: 8px; }
+  .st-attention-example figcaption { max-width: 34ch; }
+  .st-attention-examples.is-mixed { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .st-attention-examples.is-mixed .stimulus-wrap { width: min(100%, 140px); }
+}

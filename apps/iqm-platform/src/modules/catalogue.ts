@@ -20,10 +20,16 @@ export const NODE_CATALOGUE: readonly NodeCatalogueEntry[] = [
     shortDescription: "Keep features, sources and contexts bound to the right item.",
   },
   {
-    id: "predictive-mapping",
-    title: "Predictive Mapping",
-    shortTitle: "Predictive",
-    shortDescription: "Learn what tends to follow and detect when paths change.",
+    id: "path-horizon",
+    title: "Path Horizon",
+    shortTitle: "Path",
+    shortDescription: "Track where a sequence has come from and where a path may lead next.",
+  },
+  {
+    id: "knowledge-access",
+    title: "Knowledge Access",
+    shortTitle: "Knowledge",
+    shortDescription: "Bring relevant concepts, rules and stored knowledge into mind when they matter.",
   },
   {
     id: "generative-search",

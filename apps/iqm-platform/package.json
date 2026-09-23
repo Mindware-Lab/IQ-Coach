@@ -7,14 +7,9 @@
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:browser": "node scripts/verify-studio.mjs && node scripts/verify-attention-illustrations.mjs && node scripts/verify-studio-brand.mjs && node scripts/verify-node-palette.mjs && node scripts/verify-studio-identity.mjs"
   },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.104.1"
-  },
-  "devDependencies": {
-    "typescript": "^5.6.3",
-    "vite": "^8.0.16",
-    "vitest": "^4.1.8"
-  }
+  "dependencies": {"@supabase/supabase-js":"^2.104.1"},
+  "devDependencies": {"@types/node":"^24.0.0","typescript":"^5.6.3","vite":"^8.0.16","vitest":"^4.1.8","playwright":"^1.56.1"}
 }

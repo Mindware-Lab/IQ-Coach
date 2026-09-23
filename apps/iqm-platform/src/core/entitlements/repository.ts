@@ -6,7 +6,8 @@ const NODE_IDS = new Set<NodeId>([
   "attention",
   "relational-memory",
   "binding-memory",
-  "predictive-mapping",
+  "path-horizon",
+  "knowledge-access",
   "generative-search",
   "reasoning",
 ]);

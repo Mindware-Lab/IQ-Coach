@@ -1,7 +1,7 @@
 import type { NodeId } from "./node";
 import type { WrapperPhase } from "./progression";
 
-export type WrapperMode = "A" | "B" | "AB_MIXED";
+export type WrapperMode = "A" | "B" | "C" | "AB_MIXED";
 
 export interface SessionConfig {
   nodeId: NodeId;
@@ -39,7 +39,7 @@ export interface GameAdapter {
   pause?(): void;
   resume?(): void;
   destroy(): void;
-  setWrapper(wrapper: "A" | "B"): void;
+  setWrapper(wrapper: "A" | "B" | "C"): void;
   getTrainingSummary(): TrainingSummary;
   onComplete?(handler: GameCompleteHandler | null): void;
 }

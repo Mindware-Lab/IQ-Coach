@@ -8,16 +8,35 @@ import {
 } from "../core/auth/client";
 import { loadCurrentUserEntitlements } from "../core/entitlements/repository";
 import { unlockedNodeIds, type EntitlementRecord } from "../core/entitlements/store";
-import { loadBrowserMissions, saveBrowserMission } from "../core/persistence/missions";
-import { loadBrowserNodeProgress, saveBrowserNodeProgress } from "../core/persistence/progress";
+import {
+  loadBrowserMissionCheckins,
+  loadBrowserMissions,
+  saveBrowserMission,
+  saveBrowserMissionCheckin,
+} from "../core/persistence/missions";
+import {
+  hasBankedMissionRule,
+  hasSeenNodeChapter,
+  hasSeenPlatformOrientation,
+  loadBrowserBankedRules,
+  markNodeChapterSeen,
+  markPlatformOrientationSeen,
+  saveBrowserBankedRule,
+} from "../core/persistence/journey";
+import { clearBrowserNodeProgress, loadBrowserNodeProgress, saveBrowserNodeProgress } from "../core/persistence/progress";
 import { loadBrowserStrategyStatus, saveBrowserStrategyStatus } from "../core/persistence/strategy";
+import { journeyStageStatuses, nextJourneyStage } from "../core/journey/engine";
+import { isMissionCheckinComplete, recommendMissionFollowUp } from "../core/missions/engine";
 import { recordProgressionSession } from "../core/progression/engine";
 import { PHASE_PUBLIC_LABELS, wrapperModeForPhase } from "../core/progression/session";
 import { NODE_CATALOGUE } from "../modules/catalogue";
 import { getNodeModule, isNodeModuleRegistered } from "../modules/registry";
-import type { TrainingSummary } from "../types/game";
-import type { Mission } from "../types/mission";
-import type { NodeId } from "../types/node";
+import { ATTENTION_QA_SEQUENCE } from "../modules/attention/module";
+import { mountAttentionAiPractice } from "../modules/attention/aiPracticeView";
+import type { TrainingSummary, WrapperMode } from "../types/game";
+import type { BankedRule } from "../types/learning";
+import type { Mission, MissionCheckin, MissionEffect, StrategyUse, EnvironmentHelp, MissionBarrier } from "../types/mission";
+import type { JourneyBeat, JourneyBeatId, NodeId } from "../types/node";
 import type { ProgressionDecision } from "../types/progression";
 
 interface RuntimeState {
@@ -40,12 +59,13 @@ interface NetworkNodeUi {
 }
 
 const NETWORK_NODE_UI: Record<NodeId, NetworkNodeUi> = {
-  attention: { label: "Attention", shortLabel: "Attention", x: 50, y: 8 },
-  "relational-memory": { label: "Relations", shortLabel: "Relations", x: 82, y: 28 },
-  "binding-memory": { label: "Binding", shortLabel: "Binding", x: 82, y: 72 },
-  reasoning: { label: "Reasoning", shortLabel: "Reasoning", x: 50, y: 92 },
-  "generative-search": { label: "Ideas", shortLabel: "Ideas", x: 18, y: 72 },
-  "predictive-mapping": { label: "Prediction", shortLabel: "Prediction", x: 18, y: 28 },
+  attention: { label: "Attention Control", shortLabel: "Attention", x: 50, y: 12 },
+  "relational-memory": { label: "Relational Memory", shortLabel: "Relations", x: 79, y: 27 },
+  "binding-memory": { label: "Binding Memory", shortLabel: "Binding", x: 86, y: 58 },
+  "path-horizon": { label: "Path Horizon", shortLabel: "Path", x: 66, y: 83 },
+  "knowledge-access": { label: "Knowledge Access", shortLabel: "Knowledge", x: 34, y: 83 },
+  "generative-search": { label: "Generative Search", shortLabel: "Ideas", x: 14, y: 58 },
+  reasoning: { label: "Reasoning", shortLabel: "Reasoning", x: 21, y: 27 },
 };
 
 function escapeHtml(value: unknown): string {
@@ -80,9 +100,13 @@ function pagerMarkup(currentPage: number, totalPages: number): string {
 }
 
 export async function bootstrap(root: HTMLElement): Promise<void> {
+  const qaQuery = new URLSearchParams(window.location.search).has("attention-qa");
+  const attentionQa = import.meta.env.VITE_IQM_ATTENTION_QA === "true" || qaQuery;
+  const qaAccess = import.meta.env.VITE_IQM_QA_ACCESS === "true" || qaQuery;
   const localPreview =
-    !isPlatformAuthConfigured &&
-    (window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost");
+    qaAccess ||
+    (!isPlatformAuthConfigured &&
+      (window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost"));
 
   const state: RuntimeState = {
     selectedNodeId: null,
@@ -96,10 +120,10 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     missionPage: 0,
   };
 
-  const userKey = (): string => state.user?.id ?? "local-preview";
+  const userKey = (): string => state.user?.id ?? (qaAccess ? "qa-preview" : "local-preview");
 
   function accountMarkup(): string {
-    if (localPreview) return `<div class="phase-pill">Preview</div>`;
+    if (localPreview) return `<div class="phase-pill">${qaAccess ? "QA access" : "Preview"}</div>`;
     if (!isPlatformAuthConfigured) return `<div class="phase-pill">Setup needed</div>`;
     if (!state.user) return "";
     return `<div class="account-chip"><span>${escapeHtml(state.user.email ?? "Signed in")}</span><button type="button" class="text-button" data-action="sign-out">Sign out</button></div>`;
@@ -108,7 +132,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
   function shell(body: string): string {
     return `<div class="app-shell">
       <header class="topbar">
-        <div><p class="eyebrow">IQ MINDWARE</p><h1>Build a stronger thinking network</h1><p class="lede">Train skills. Learn when to use them. Put them to work in real life.</p></div>
+        <div><p class="eyebrow">IQ MINDWARE</p><h1>Navigate possibility. Build intelligence.</h1><p class="lede">Turn possibility into agency.</p></div>
         ${accountMarkup()}
       </header>
       ${state.notice ? `<div class="notice">${escapeHtml(state.notice)}</div>` : ""}
@@ -150,6 +174,38 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     });
   }
 
+  function attentionQaStep(totalSessions: number): { wrapperMode: WrapperMode; label: string } | null {
+    const wrapperMode = ATTENTION_QA_SEQUENCE[totalSessions] as WrapperMode | undefined;
+    if (!wrapperMode) return null;
+    if (wrapperMode === "B") return { wrapperMode, label: "Optic Flow perturbation" };
+    if (wrapperMode === "C") return { wrapperMode, label: "Emotional Distractor perturbation" };
+    return { wrapperMode, label: totalSessions === 0 ? "Core anchor" : "Core return" };
+  }
+
+  function recordAttentionQaSession(
+    current: ReturnType<typeof loadBrowserNodeProgress>,
+    summary: TrainingSummary,
+    wrapperMode: WrapperMode,
+  ): ProgressionDecision {
+    const next = {
+      ...current,
+      phase: "A_TRAIN" as const,
+      sessionsInPhase: 0,
+      totalSessions: current.totalSessions + 1,
+      aScores: [...current.aScores],
+      bScores: [...current.bScores],
+      aReopenScores: [...current.aReopenScores],
+    };
+    if (wrapperMode === "A") next.aScores.push(summary.progressionScore);
+    if (wrapperMode === "B") next.bScores.push(summary.progressionScore);
+    return {
+      previousPhase: current.phase,
+      nextPhase: next.phase,
+      phaseChanged: current.phase !== next.phase,
+      reason: "Forced APR QA sequence. Transition is for product testing, not plateau evidence.",
+      state: next,
+    };
+  }
   function networkNode(nodeId: NodeId): string {
     const ui = NETWORK_NODE_UI[nodeId];
     const registered = isNodeModuleRegistered(nodeId);
@@ -167,14 +223,138 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
   }
 
   function networkMap(): string {
-    return `<div class="network-map" aria-label="Your six-part thinking network">
+    return `<div class="network-map" aria-label="Your seven-part adaptive intelligence network">
       <svg class="network-map-lines" viewBox="0 0 100 100" aria-hidden="true">
         <circle cx="50" cy="50" r="36" class="network-ring" />
         ${Object.values(NETWORK_NODE_UI).map((ui) => `<line x1="50" y1="50" x2="${ui.x}" y2="${ui.y}" />`).join("")}
       </svg>
-      <div class="network-hub"><strong>Your</strong><span>Network</span></div>
+      <div class="network-hub"><strong>Adaptive</strong><span>IQ</span></div>
       ${NODE_CATALOGUE.map((node) => networkNode(node.id)).join("")}
     </div>`;
+  }
+
+
+  const ATTENTION_BEAT_ORDER: readonly JourneyBeatId[] = ["anchor", "perturb", "return", "salience", "bank"];
+
+  function attentionJourneyBeat(sessionIndex: number): JourneyBeat | null {
+    const journey = getNodeModule("attention").journey;
+    if (!journey) return null;
+    const id = ATTENTION_BEAT_ORDER[Math.max(0, Math.min(sessionIndex, ATTENTION_BEAT_ORDER.length - 1))];
+    return journey.beats[id];
+  }
+
+  function journeySnapshot(nodeId: NodeId) {
+    const progress = loadBrowserNodeProgress(userKey(), nodeId);
+    const strategyStatus = loadBrowserStrategyStatus(userKey(), nodeId);
+    const missions = loadBrowserMissions(userKey(), nodeId);
+    const checkins = loadBrowserMissionCheckins(userKey(), nodeId);
+    const bankedRules = loadBrowserBankedRules(userKey(), nodeId);
+    const pendingMission = [...missions].reverse().find((mission) =>
+      mission.status === "reschedule" ||
+      (mission.status === "planned" &&
+        !checkins.some((checkin) => checkin.missionId === mission.id && checkin.opportunityOccurred)),
+    );
+    const unbankedMission = [...missions].reverse().find((mission) =>
+      mission.status === "done" &&
+      checkins.some((checkin) => checkin.missionId === mission.id && checkin.opportunityOccurred) &&
+      !hasBankedMissionRule(userKey(), nodeId, mission.id),
+    );
+    const input = {
+      chapterSeen: hasSeenNodeChapter(userKey(), nodeId),
+      sessionsCompleted: progress.totalSessions,
+      strategyStarted: strategyStatus !== "not-started",
+      missionsPlanned: missions.length,
+      missionCheckins: checkins.length,
+      bankedRules: bankedRules.length,
+    };
+    let nextStage = nextJourneyStage(input);
+    if (pendingMission) nextStage = "review";
+    else if (unbankedMission) nextStage = "bank";
+    return { progress, strategyStatus, missions, checkins, bankedRules, pendingMission, unbankedMission, input, nextStage };
+  }
+
+  function journeyAction(nodeId: NodeId) {
+    const module = getNodeModule(nodeId);
+    const snapshot = journeySnapshot(nodeId);
+    const chapter = module.journey;
+    if (snapshot.nextStage === "understand") {
+      return { kicker: "UNDERSTAND", title: chapter ? `Chapter ${chapter.chapterNumber} · ${chapter.chapterTitle}` : "Understand the skill", copy: chapter?.humanQuestion ?? module.shortDescription, label: "Start the chapter", attrs: 'data-action="chapter"' };
+    }
+    if (snapshot.nextStage === "train") {
+      const beat = nodeId === "attention" ? attentionJourneyBeat(snapshot.progress.totalSessions) : null;
+      return { kicker: "TRAIN", title: beat?.title ?? "Build the skill", copy: beat?.copy ?? module.shortDescription, label: "Train now", attrs: 'data-action="train"' };
+    }
+    if (snapshot.nextStage === "use") {
+      return { kicker: "USE", title: "Turn the game into a portable move", copy: chapter?.portableMove ?? module.strategy.handle, label: "Learn the move", attrs: 'data-action="strategy"' };
+    }
+    if (snapshot.nextStage === "apply") {
+      return { kicker: "REALITY", title: "Cross the reality boundary", copy: chapter?.realityPrompt ?? "Choose one small real situation where this skill matters.", label: "Choose a mission", attrs: 'data-action="missions"' };
+    }
+    if (snapshot.nextStage === "review" && snapshot.pendingMission) {
+      return { kicker: "FEEDBACK", title: "What did reality say?", copy: `Review your mission: ${snapshot.pendingMission.context}`, label: "Check in", attrs: `data-mission-checkin="${escapeHtml(snapshot.pendingMission.id)}"` };
+    }
+    if (snapshot.nextStage === "bank" && snapshot.unbankedMission) {
+      return { kicker: "BANK", title: "Keep what survived", copy: chapter?.bankPrompt ?? "Turn useful feedback into a reusable rule.", label: "Bank the learning", attrs: `data-bank-mission="${escapeHtml(snapshot.unbankedMission.id)}"` };
+    }
+    if (attentionQa && nodeId === "attention" && snapshot.progress.totalSessions >= ATTENTION_QA_SEQUENCE.length) {
+      return { kicker: "CHAPTER COMPLETE", title: "Signal is now a portable idea", copy: "You have moved from an abstract Attention task through changed surfaces and back again. Use the AI niche challenge or another real mission to keep testing the rule.", label: "Try the AI niche challenge", attrs: 'data-action="ai-practice"' };
+    }
+    const beat = nodeId === "attention" ? attentionJourneyBeat(snapshot.progress.totalSessions) : null;
+    return { kicker: "CONTINUE", title: beat?.title ?? "Continue the journey", copy: beat?.copy ?? "Return to training from a richer starting point.", label: "Continue training", attrs: 'data-action="train"' };
+  }
+
+  function journeyProgressMarkup(nodeId: NodeId): string {
+    const snapshot = journeySnapshot(nodeId);
+    const labels: Record<string, string> = {
+      understand: "Understand",
+      train: "Train",
+      use: "Use",
+      apply: "Apply",
+      review: "Review",
+    };
+    return `<div class="journey-progress" aria-label="Adaptive journey progress">${journeyStageStatuses(snapshot.input).map((stage) =>
+      `<span class="${stage.complete ? "is-complete" : ""} ${stage.current ? "is-current" : ""}"><b>${stage.complete ? "✓" : "•"}</b>${labels[stage.id]}</span>`
+    ).join("")}</div>`;
+  }
+
+  function renderOrientation(): void {
+    const attentionReady = state.unlocked.has("attention") && isNodeModuleRegistered("attention");
+    root.innerHTML = shell(`<section class="panel screen-panel orientation-screen">
+      <div class="orientation-copy">
+        <p class="section-kicker">ADAPTIVE INTELLIGENCE</p>
+        <h2>Navigate possibility.<br>Build intelligence.</h2>
+        <p class="orientation-agency">Turn possibility into agency.</p>
+        <p>Modern life gives us more information, tools, connections and possible paths than ever before. Synergy IQ trains the capacities that help you navigate that abundance — then teaches you how to recognise and use those capacities outside the game.</p>
+        <div class="orientation-flow" aria-label="The Synergy IQ learning loop">
+          <span>TRAIN A CAPACITY</span><b>→</b><span>EXTRACT THE MOVE</span><b>→</b><span>USE IT IN CONTEXT</span><b>→</b><span>LET REALITY ANSWER</span><b>→</b><span>BANK WHAT SURVIVES</span>
+        </div>
+      </div>
+      <div class="orientation-actions">
+        ${attentionReady ? '<button type="button" class="platform-button" data-action="orientation-attention">Begin with Attention Control</button>' : ""}
+        <button type="button" class="platform-button secondary-button" data-action="orientation-dashboard">Explore my network</button>
+      </div>
+    </section>`);
+  }
+
+  function renderChapterIntro(nodeId: NodeId): void {
+    const module = getNodeModule(nodeId);
+    if (!module.journey) {
+      markNodeChapterSeen(userKey(), nodeId);
+      renderNodeHome(nodeId);
+      return;
+    }
+    const journey = module.journey;
+    root.innerHTML = shell(`<section class="panel screen-panel chapter-screen">
+      <button type="button" class="text-button" data-action="dashboard">← Network</button>
+      <div class="chapter-lockup">
+        <p class="section-kicker">CHAPTER ${escapeHtml(journey.chapterNumber)} · ${escapeHtml(journey.chapterTitle.toUpperCase())}</p>
+        <h2>${escapeHtml(journey.worldviewHook)}</h2>
+        <div class="chapter-question"><span>THE QUESTION</span><strong>${escapeHtml(journey.humanQuestion)}</strong></div>
+        <p>${escapeHtml(journey.abstractRationale)}</p>
+        <blockquote>${escapeHtml(journey.portableMove)}</blockquote>
+      </div>
+      <div class="screen-footer"><span class="muted-copy">The scored game stays separate from these strategy and real-world layers.</span><button type="button" class="platform-button" data-action="chapter-begin">Start the journey →</button></div>
+    </section>`);
   }
 
   function renderDashboard(): void {
@@ -182,42 +362,81 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     state.strategyPage = 0;
     state.missionPage = 0;
     const attentionReady = state.unlocked.has("attention") && isNodeModuleRegistered("attention");
-    const attentionProgress = loadBrowserNodeProgress(userKey(), "attention");
+    const attentionAction = attentionReady ? journeyAction("attention") : null;
     root.innerHTML = shell(`
       <section class="panel today-panel">
-        <div class="today-copy"><p class="section-kicker">TODAY</p><h2>${attentionReady ? "Train Attention" : "Choose your first coach"}</h2>
-          ${attentionReady ? `<p>${escapeHtml(PHASE_PUBLIC_LABELS[attentionProgress.phase])} · Session ${attentionProgress.totalSessions + 1}</p>` : `<p>Start with one skill and build from there.</p>`}
+        <div class="today-copy">
+          <p class="section-kicker">${attentionAction?.kicker ?? "TODAY"}</p>
+          <h2>${escapeHtml(attentionAction?.title ?? "Choose your first capacity")}</h2>
+          <p>${escapeHtml(attentionAction?.copy ?? "Start with one cognitive capacity and build from there.")}</p>
         </div>
-        ${attentionReady ? `<button type="button" class="platform-button today-button" data-open-node="attention">Continue</button>` : ""}
+        ${attentionReady && attentionAction ? `<button type="button" class="platform-button today-button" data-open-node="attention">${escapeHtml(attentionAction.label)}</button>` : ""}
       </section>
       <section class="panel network-panel">
-        <div class="section-heading"><div><p class="section-kicker">YOUR NETWORK</p><h2>Six skills. One system.</h2></div></div>
+        <div class="section-heading"><div><p class="section-kicker">YOUR ADAPTIVE NETWORK</p><h2>Seven capacities. One learning system.</h2></div></div>
         ${networkMap()}
-        <p class="network-note">Tap a coloured node to open it. Links show your training map, not a score.</p>
+        <p class="network-note">The network is a navigation map, not a personal causal model. Open a released node to continue its journey.</p>
       </section>
-      <section class="panel gtrack-panel"><div class="gtrack-mark" aria-hidden="true">G</div><div><p class="section-kicker">G TRACK</p><h2>Check your progress</h2><p>Independent check-ins stay separate from your training scores.</p></div></section>
+      <section class="panel gtrack-panel"><div class="gtrack-mark" aria-hidden="true">G</div><div><p class="section-kicker">G TRACK</p><h2>Map how you adapt</h2><p>Adaptive profiles and cognitive benchmarks stay separate from training scores.</p></div></section>
     `);
   }
 
+  function attentionQaJourneyMarkup(totalSessions: number): string {
+    if (!attentionQa) return "";
+    const labels = ["Find signal", "New surface", "Recover", "Relevance", "Bank"];
+    const icons = ["◎", "↗", "↩", "◉", "◇"];
+    return `<div class="apr-journey" aria-label="Five-step Attention adaptive journey">
+      <div class="apr-journey-head"><span><strong>Attention journey</strong> · same operation across change</span><span>${Math.min(totalSessions, 5)}/5 trained</span></div>
+      <div class="apr-rail">${labels.map((label, index) => {
+        const stateClass = index < totalSessions ? "is-complete" : index === totalSessions ? "is-current" : "is-upcoming";
+        return `<div class="apr-step ${stateClass}"><span class="apr-dot">${index < totalSessions ? "✓" : icons[index]}</span><span>${label}</span></div>`;
+      }).join("")}</div>
+    </div>`;
+  }
   function renderNodeHome(nodeId: NodeId): void {
     if (!isNodeModuleRegistered(nodeId) || !state.unlocked.has(nodeId)) return;
     state.selectedNodeId = nodeId;
     state.strategyPage = 0;
     state.missionPage = 0;
     const module = getNodeModule(nodeId);
-    const progress = loadBrowserNodeProgress(userKey(), nodeId);
-    const strategyStatus = loadBrowserStrategyStatus(userKey(), nodeId);
-    const missions = loadBrowserMissions(userKey(), nodeId);
-    const capacityStatus = progress.totalSessions > 0 ? "In progress" : "Ready";
-    const nicheStatus = missions.some((mission) => mission.status === "planned") ? "Planned" : missions.length ? "Started" : "Ready";
-    const strategyLabel = strategyStatus === "not-started" ? "Ready" : strategyStatus === "practising" ? "Practising" : "Learned";
+    const snapshot = journeySnapshot(nodeId);
+    const action = journeyAction(nodeId);
+    const chapter = module.journey;
+    const latestRules = snapshot.bankedRules.slice(-2).reverse();
     root.innerHTML = shell(`
-      <section class="panel node-hero node-hero-${nodeId}"><button type="button" class="text-button" data-action="dashboard">← Network</button><p class="section-kicker">${escapeHtml(module.shortTitle.toUpperCase())}</p><h2>${escapeHtml(module.title)}</h2><p>${escapeHtml(module.shortDescription)}</p>
-        <div class="csn-row"><span><strong>Train</strong>${escapeHtml(capacityStatus)}</span><span><strong>Use</strong>${escapeHtml(strategyLabel)}</span><span><strong>Apply</strong>${escapeHtml(nicheStatus)}</span></div></section>
-      <section class="journey-grid">
-        <article class="panel journey-card journey-train"><p class="section-kicker">TRAIN</p><h3>Build the skill</h3><p>${escapeHtml(PHASE_PUBLIC_LABELS[progress.phase])}</p><button type="button" class="platform-button" data-action="train">Train now</button></article>
-        <article class="panel journey-card journey-use"><p class="section-kicker">USE</p><h3>Make it portable</h3><blockquote>${escapeHtml(module.strategy.handle)}</blockquote><button type="button" class="platform-button secondary-button" data-action="strategy">Learn the cue</button></article>
-        <article class="panel journey-card journey-apply"><p class="section-kicker">APPLY</p><h3>Try it for real</h3><p>${missions.filter((mission) => mission.status === "planned").length ? "Mission ready" : "Choose one small mission"}</p><button type="button" class="platform-button secondary-button" data-action="missions">Pick a mission</button></article>
+      <section class="node-home-screen">
+        <section class="panel node-hero node-hero-${nodeId}">
+          <button type="button" class="text-button" data-action="dashboard">← Network</button>
+          <p class="section-kicker">${chapter ? `CHAPTER ${escapeHtml(chapter.chapterNumber)} · ${escapeHtml(chapter.chapterTitle.toUpperCase())}` : escapeHtml(module.shortTitle.toUpperCase())}</p>
+          <h2>${escapeHtml(module.title)}</h2>
+          <p class="node-human-question">${escapeHtml(chapter?.humanQuestion ?? module.shortDescription)}</p>
+          ${journeyProgressMarkup(nodeId)}
+          ${nodeId === "attention" ? attentionQaJourneyMarkup(snapshot.progress.totalSessions) : ""}
+        </section>
+
+        <section class="panel journey-primary-card">
+          <div>
+            <p class="section-kicker">${escapeHtml(action.kicker)}</p>
+            <h3>${escapeHtml(action.title)}</h3>
+            <p>${escapeHtml(action.copy)}</p>
+          </div>
+          <button type="button" class="platform-button" ${action.attrs}>${escapeHtml(action.label)} →</button>
+        </section>
+
+        ${latestRules.length ? `<section class="panel banked-rules-card"><p class="section-kicker">MY ADAPTIVE RULES</p>${latestRules.map((rule) => `<blockquote><strong>When</strong> ${escapeHtml(rule.whenCue)}<br><strong>I will</strong> ${escapeHtml(rule.actionRule)}</blockquote>`).join("")}</section>` : ""}
+
+        <details class="panel node-tools">
+          <summary>Explore ${escapeHtml(module.title)} tools</summary>
+          <div class="node-tool-grid">
+            <button type="button" class="secondary-button platform-button" data-action="train">Training</button>
+            <button type="button" class="secondary-button platform-button" data-action="strategy">Portable strategy</button>
+            ${nodeId === "attention" ? '<button type="button" class="secondary-button platform-button" data-action="ai-practice">AI niche challenge</button>' : ""}
+            <button type="button" class="secondary-button platform-button" data-action="missions">Reality missions</button>
+            ${attentionQa && nodeId === "attention" && snapshot.progress.totalSessions >= ATTENTION_QA_SEQUENCE.length ? '<button type="button" class="secondary-button platform-button" data-action="reset-attention-qa">Restart QA sequence</button>' : ""}
+            <a class="secondary-button platform-button node-tool-link" href="https://www.iqmindware.com/g-track-test-battery/" target="_blank" rel="noopener">G Track</a>
+          </div>
+          <p class="muted-copy">Training performance, real-world mission feedback and G Track measurement remain separate evidence layers.</p>
+        </details>
       </section>`);
   }
 
@@ -233,7 +452,8 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
 
     const pageContent = page === 0
       ? `<div class="screen-content">
-          <h2>${escapeHtml(module.strategy.handle)}</h2>
+          <p class="move-intro">The game trained an operation. Now turn it into a rule you can recognise outside the game.</p>
+          <h2>${escapeHtml(module.journey?.portableMove ?? module.strategy.handle)}</h2>
           <p class="strategy-explanation">${escapeHtml(module.strategy.explanation)}</p>
           <div class="strategy-grid"><div><h3>Use it when…</h3>${listItems(module.strategy.targetCues)}</div><div><h3>Skip it when…</h3>${listItems(module.strategy.antiCues)}</div></div>
         </div>`
@@ -256,7 +476,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
 
     root.innerHTML = shell(`<section class="panel screen-panel strategy-screen">
       <button type="button" class="text-button" data-action="node-home">← ${escapeHtml(module.shortTitle)}</button>
-      <p class="section-kicker">USE</p>
+      <p class="section-kicker">THE MOVE · USE</p>
       ${pageContent}
       <div class="screen-footer">${previous}${pagerMarkup(page, totalPages)}${next}</div>
     </section>`);
@@ -265,6 +485,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
   function renderMissions(nodeId: NodeId): void {
     const module = getNodeModule(nodeId);
     const missions = loadBrowserMissions(userKey(), nodeId);
+    const checkins = loadBrowserMissionCheckins(userKey(), nodeId);
     const savedPerPage = 2;
     const savedPageCount = Math.max(1, Math.ceil(missions.length / savedPerPage));
     const firstSavedPage = module.missions.length;
@@ -276,15 +497,35 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     if (page < firstSavedPage) {
       const mission = module.missions[page];
       pageContent = `<div class="screen-content">
-        <h2>Pick one small real-life mission</h2><p class="muted-copy">Choose something easy to notice and easy to try.</p>
-        <div class="mission-grid"><article class="mission-card"><h3>${escapeHtml(mission.title)}</h3><p>${escapeHtml(mission.contextExample)}</p><button type="button" class="platform-button secondary-button" data-plan-mission="${escapeHtml(mission.id)}">Choose this</button></article></div>
+        <h2>Cross the reality boundary</h2>
+        <p class="muted-copy">${escapeHtml(module.journey?.realityPrompt ?? "Choose one small real-life mission. Keep it easy to notice, easy to try and easy to review.")}</p>
+        <div class="mission-grid"><article class="mission-card">
+          <p class="section-kicker">MISSION ${page + 1} OF ${firstSavedPage}</p>
+          <h3>${escapeHtml(mission.title)}</h3>
+          <p><strong>Where:</strong> ${escapeHtml(mission.contextExample)}</p>
+          <p><strong>Trigger:</strong> ${escapeHtml(mission.targetCue)}</p>
+          <blockquote>${escapeHtml(mission.intendedPolicy)}</blockquote>
+          <button type="button" class="platform-button" data-plan-mission="${escapeHtml(mission.id)}">Take this into reality →</button>
+        </article></div>
       </div>`;
     } else {
       const savedIndex = page - firstSavedPage;
       const savedChunk = missions.slice(savedIndex * savedPerPage, (savedIndex + 1) * savedPerPage);
       pageContent = `<div class="screen-content">
-        <h2>Your missions</h2><p class="muted-copy">Small, cue-linked practice keeps the skill connected to real life.</p>
-        ${savedChunk.length ? `<div class="planned-list">${savedChunk.map((mission) => `<p><strong>${escapeHtml(mission.context)}</strong><br>${escapeHtml(mission.intendedPolicy)}</p>`).join("")}</div>` : `<p class="muted-copy">Nothing planned yet.</p>`}
+        <h2>Your Reality Missions</h2>
+        <p class="muted-copy">The app cannot prove transfer from self-report. These check-ins simply keep action and feedback inside the learning loop.</p>
+        ${savedChunk.length ? `<div class="planned-list">${savedChunk.map((mission) => {
+          const checkin = [...checkins].reverse().find((row) => row.missionId === mission.id && row.opportunityOccurred);
+          const banked = hasBankedMissionRule(userKey(), nodeId, mission.id);
+          const action = mission.status === "reschedule"
+            ? `<button type="button" class="platform-button compact-button" data-mission-checkin="${escapeHtml(mission.id)}">Check in when the opportunity occurs</button>`
+            : !checkin
+              ? `<button type="button" class="platform-button compact-button" data-mission-checkin="${escapeHtml(mission.id)}">What did reality say?</button>`
+              : !banked
+                ? `<button type="button" class="platform-button compact-button" data-bank-mission="${escapeHtml(mission.id)}">Bank the learning</button>`
+                : `<span class="mission-reviewed">Reviewed ✓</span>`;
+          return `<article class="planned-mission"><strong>${escapeHtml(mission.context)}</strong><p>${escapeHtml(mission.intendedPolicy)}</p>${action}</article>`;
+        }).join("")}</div>` : `<p class="muted-copy">Nothing planned yet.</p>`}
       </div>`;
     }
 
@@ -296,24 +537,214 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       : `<span aria-hidden="true"></span>`;
 
     root.innerHTML = shell(`<section class="panel screen-panel mission-screen">
-      <button type="button" class="text-button" data-action="node-home">← ${escapeHtml(module.shortTitle)}</button><p class="section-kicker">APPLY</p>
+      <button type="button" class="text-button" data-action="node-home">← ${escapeHtml(module.shortTitle)}</button><p class="section-kicker">REALITY · APPLY</p>
       ${pageContent}
       <div class="screen-footer">${previous}${pagerMarkup(page, totalPages)}${next}</div>
+    </section>`);
+  }
+
+  function missionFollowUpCopy(checkin: MissionCheckin): string {
+    const followUp = recommendMissionFollowUp(checkin);
+    if (followUp === "RESCHEDULE_OR_NEW_CONTEXT") return "The opportunity did not occur. That is not a failed mission — keep the rule and try it in another suitable context.";
+    if (followUp === "STRENGTHEN_CUE") return "The strategy was forgotten. Make the trigger more visible or place a reminder where the situation begins.";
+    if (followUp === "SHARPEN_TARGET_CUE") return "The cue was hard to notice. Make the trigger more concrete and easier to recognise.";
+    if (followUp === "REDESIGN_NICHE_SUPPORT") return "The environment got in the way. Change the workflow, interface or interruption pattern before blaming the capacity.";
+    if (followUp === "REVISIT_ANTI_CUES") return "The strategy did not fit this situation. Revisit when Attention Control should — and should not — be used.";
+    if (followUp === "REDUCE_FRICTION") return "Pressure made the strategy hard to use. Reduce the number of steps or make the cue available earlier.";
+    if (followUp === "HUMAN_REVIEW") return "Something else blocked use. Keep the note and choose a smaller next experiment.";
+    return "You completed the loop. Now extract the part worth carrying forward.";
+  }
+
+  function renderMissionCheckin(nodeId: NodeId, missionId: string): void {
+    const mission = loadBrowserMissions(userKey(), nodeId).find((row) => row.id === missionId);
+    if (!mission) {
+      state.notice = "Mission not found.";
+      renderNodeHome(nodeId);
+      return;
+    }
+    const module = getNodeModule(nodeId);
+    root.innerHTML = shell(`<section class="panel screen-panel mission-checkin-screen">
+      <button type="button" class="text-button" data-action="node-home">← ${escapeHtml(module.shortTitle)}</button>
+      <p class="section-kicker">FEEDBACK · REALITY</p>
+      <h2>What did reality say?</h2>
+      <p class="muted-copy">Review the action separately from the training score. The goal is to learn whether the cue, strategy and environment worked together.</p>
+      <div class="mission-checkin-context"><strong>${escapeHtml(mission.context)}</strong><p>${escapeHtml(mission.intendedPolicy)}</p></div>
+      <form id="mission-checkin-form" class="mission-checkin-form">
+        <label>Did the opportunity occur?
+          <select name="opportunity" required><option value="">Choose…</option><option value="yes">Yes</option><option value="no">No</option></select>
+        </label>
+        <label>Did you use the strategy?
+          <select name="strategyUse"><option value="">Choose if applicable…</option><option value="yes">Yes</option><option value="partly">Partly</option><option value="no">No</option></select>
+        </label>
+        <label>What was the effect?
+          <select name="effect"><option value="">Choose if applicable…</option><option value="helped">Helped</option><option value="no-clear-difference">No clear difference</option><option value="made-it-harder">Made it harder</option><option value="not-sure">Not sure</option></select>
+        </label>
+        <label>Did the environmental change help?
+          <select name="environmentHelp"><option value="">Choose if applicable…</option><option value="yes">Yes</option><option value="no">No</option><option value="no-change">I did not make one</option></select>
+        </label>
+        <label>What got in the way, if anything?
+          <select name="barrier"><option value="">Nothing / not applicable</option><option value="forgot">Forgot</option><option value="did-not-notice-cue">Did not notice the cue</option><option value="too-busy-under-pressure">Too busy / under pressure</option><option value="environment-got-in-way">Environment got in the way</option><option value="strategy-did-not-fit">Strategy did not fit</option><option value="other">Other</option></select>
+        </label>
+        <label>Anything worth remembering?
+          <textarea name="note" rows="3" maxlength="300" placeholder="One short observation is enough."></textarea>
+        </label>
+        <p class="form-message" id="mission-checkin-message" role="status"></p>
+        <button type="submit" class="platform-button">Save the feedback →</button>
+      </form>
+    </section>`);
+
+    const form = root.querySelector<HTMLFormElement>("#mission-checkin-form");
+    form?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const data = new FormData(form);
+      const occurred = String(data.get("opportunity") ?? "") === "yes";
+      const strategyUse = String(data.get("strategyUse") ?? "") as StrategyUse | "";
+      const effect = String(data.get("effect") ?? "") as MissionEffect | "";
+      const environmentHelp = String(data.get("environmentHelp") ?? "") as EnvironmentHelp | "";
+      const barrier = String(data.get("barrier") ?? "") as MissionBarrier | "";
+      const note = String(data.get("note") ?? "").trim();
+      const checkin: MissionCheckin = {
+        id: randomId("mission-checkin"),
+        missionId: mission.id,
+        userId: userKey(),
+        nodeId,
+        opportunityOccurred: occurred,
+        strategyUse: occurred && strategyUse ? strategyUse : undefined,
+        effect: occurred && effect ? effect : undefined,
+        environmentHelp: occurred && environmentHelp ? environmentHelp : undefined,
+        barrier: occurred && barrier ? barrier : undefined,
+        note: note || undefined,
+        createdAt: new Date().toISOString(),
+      };
+      const message = root.querySelector<HTMLElement>("#mission-checkin-message");
+      if (!String(data.get("opportunity") ?? "")) {
+        if (message) message.textContent = "Choose whether the opportunity occurred.";
+        return;
+      }
+      if (!isMissionCheckinComplete(checkin)) {
+        if (message) message.textContent = "For an opportunity that occurred, complete strategy use, effect and environment support.";
+        return;
+      }
+      saveBrowserMissionCheckin(userKey(), checkin);
+      const updated: Mission = {
+        ...mission,
+        status: occurred ? "done" : "reschedule",
+        dueAt: occurred ? mission.dueAt : new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+      };
+      saveBrowserMission(userKey(), updated);
+      if (!occurred) {
+        state.notice = missionFollowUpCopy(checkin);
+        renderNodeHome(nodeId);
+        return;
+      }
+      renderBankLearning(nodeId, mission.id, checkin);
+    });
+  }
+
+  function renderBankLearning(nodeId: NodeId, missionId: string, suppliedCheckin?: MissionCheckin): void {
+    const mission = loadBrowserMissions(userKey(), nodeId).find((row) => row.id === missionId);
+    const checkin = suppliedCheckin ?? [...loadBrowserMissionCheckins(userKey(), nodeId)].reverse().find((row) => row.missionId === missionId && row.opportunityOccurred);
+    if (!mission || !checkin) {
+      state.notice = "Complete the mission check-in before banking a rule.";
+      renderNodeHome(nodeId);
+      return;
+    }
+    const module = getNodeModule(nodeId);
+    root.innerHTML = shell(`<section class="panel screen-panel bank-screen">
+      <button type="button" class="text-button" data-action="node-home">← ${escapeHtml(module.shortTitle)}</button>
+      <p class="section-kicker">BANK · KEEP WHAT SURVIVED</p>
+      <h2>Turn feedback into a reusable rule</h2>
+      <p class="muted-copy">${escapeHtml(missionFollowUpCopy(checkin))}</p>
+      <form id="bank-rule-form" class="bank-rule-form">
+        <label>When…
+          <textarea name="whenCue" rows="2" maxlength="240" required>${escapeHtml(mission.targetCue)}</textarea>
+        </label>
+        <label>I will…
+          <textarea name="actionRule" rows="3" maxlength="300" required>${escapeHtml(mission.intendedPolicy)}</textarea>
+        </label>
+        <label>Because…
+          <textarea name="because" rows="2" maxlength="240" placeholder="Optional: what did the world teach you?">${escapeHtml(checkin.note ?? "")}</textarea>
+        </label>
+        <button type="submit" class="platform-button">Bank this rule →</button>
+      </form>
+      <p class="muted-copy">A banked rule is a personal learning note, not evidence that the training caused a real-world outcome.</p>
+    </section>`);
+
+    root.querySelector<HTMLFormElement>("#bank-rule-form")?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const form = event.currentTarget as HTMLFormElement;
+      const data = new FormData(form);
+      const rule: BankedRule = {
+        id: randomId("banked-rule"),
+        userId: userKey(),
+        nodeId,
+        whenCue: String(data.get("whenCue") ?? "").trim(),
+        actionRule: String(data.get("actionRule") ?? "").trim(),
+        because: String(data.get("because") ?? "").trim() || undefined,
+        sourceMissionId: mission.id,
+        createdAt: new Date().toISOString(),
+      };
+      if (!rule.whenCue || !rule.actionRule) return;
+      saveBrowserBankedRule(userKey(), rule);
+      state.notice = "Adaptive rule banked. The next problem starts from a richer state.";
+      renderNodeHome(nodeId);
+    });
+  }
+
+  function renderAiPractice(): void {
+    state.selectedNodeId = "attention";
+    root.innerHTML = shell(`<section class="panel screen-panel ai-practice-screen"><button type="button" class="text-button" data-action="node-home">← Attention</button><div id="attention-ai-practice" class="ai-practice-host"></div></section>`);
+    const host = root.querySelector<HTMLElement>("#attention-ai-practice");
+    if (!host) throw new Error("Missing Attention AI practice host.");
+    mountAttentionAiPractice(host);
+  }
+  function renderTrainingIntro(nodeId: NodeId): void {
+    const module = getNodeModule(nodeId);
+    const progress = loadBrowserNodeProgress(userKey(), nodeId);
+    const qaStep = attentionQa && nodeId === "attention" ? attentionQaStep(progress.totalSessions) : null;
+    const sessionNumber = progress.totalSessions + 1;
+    const beat = nodeId === "attention" ? attentionJourneyBeat(progress.totalSessions) : null;
+    const title = beat?.title ?? "Ready to train?";
+    const copy = beat?.copy ?? "Stay with the task goal and let the difficulty adapt around you.";
+    let invariant = "The target cognitive operation stays the same.";
+    if (nodeId === "attention") {
+      if (qaStep?.wrapperMode === "B") invariant = "Keep extracting the same IN / OUT majority relation from motion.";
+      else if (qaStep?.wrapperMode === "C") invariant = "Ignore the face. Use only the arrow majority.";
+      else invariant = "Find whether the majority of signals point IN or OUT.";
+    }
+    root.innerHTML = shell(`<section class="panel screen-panel session-preflight">
+      <button type="button" class="text-button" data-action="node-home">← ${escapeHtml(module.shortTitle)}</button>
+      <div class="preflight-stage"><span class="preflight-index">${sessionNumber}</span><span>${beat ? escapeHtml(beat.shortLabel.toUpperCase()) : `SESSION ${sessionNumber}`}</span></div>
+      ${module.journey ? `<p class="preflight-question"><strong>${escapeHtml(module.journey.humanQuestion)}</strong></p>` : ""}
+      <h2>${escapeHtml(title)}</h2>
+      <p>${escapeHtml(copy)}</p>
+      ${sessionNumber === 1 && module.journey ? `<p class="preflight-rationale">${escapeHtml(module.journey.abstractRationale)}</p>` : ""}
+      <div class="preflight-invariant"><span>WHAT STAYS</span><strong>${escapeHtml(invariant)}</strong></div>
+      ${nodeId === "attention" ? attentionQaJourneyMarkup(progress.totalSessions) : ""}
+      <div class="preflight-footer"><span class="muted-copy">Scored training stays separate from strategy, mission and G Track evidence.</span><button type="button" class="platform-button" data-action="start-session">Start session →</button></div>
     </section>`);
   }
 
   function renderTraining(nodeId: NodeId): void {
     const module = getNodeModule(nodeId);
     const progress = loadBrowserNodeProgress(userKey(), nodeId);
-    const wrapperMode = wrapperModeForPhase(progress.phase);
+    const qaStep = attentionQa && nodeId === "attention" ? attentionQaStep(progress.totalSessions) : null;
+    if (attentionQa && nodeId === "attention" && !qaStep) {
+      state.notice = "Five-session Attention QA programme complete. Restart it from the Attention screen if you want another run.";
+      renderNodeHome(nodeId);
+      return;
+    }
+    const wrapperMode = qaStep?.wrapperMode ?? wrapperModeForPhase(progress.phase);
     const sessionId = randomId(`${nodeId}-session`);
     state.gamePaused = false;
-    root.innerHTML = shell(`<section class="panel training-shell"><div class="session-heading"><div><button type="button" class="text-button" data-action="node-home">← Exit</button><p class="section-kicker">TRAIN</p><h2>${escapeHtml(module.title)}</h2></div><button type="button" class="text-button" data-action="pause">Pause</button></div><div id="game-host"></div></section>`);
+    root.innerHTML = shell(`<section class="panel training-shell"><div class="session-heading"><div><button type="button" class="text-button" data-action="node-home">← Exit</button><p class="section-kicker">TRAIN · SESSION ${Math.min(progress.totalSessions + 1, attentionQa && nodeId === "attention" ? 5 : progress.totalSessions + 1)}${attentionQa && nodeId === "attention" ? " / 5" : ""}</p><h2>${escapeHtml(module.title)}</h2><p class="training-context">${escapeHtml(nodeId === "attention" ? (attentionJourneyBeat(progress.totalSessions)?.shortLabel ?? qaStep?.label ?? "") : PHASE_PUBLIC_LABELS[progress.phase])}</p></div><button type="button" class="text-button pause-control" data-action="pause">Pause</button></div><div id="game-host"></div></section>`);
     const host = root.querySelector<HTMLElement>("#game-host");
     if (!host) throw new Error("Missing game host.");
     module.game.onComplete?.((summary) => {
       const current = loadBrowserNodeProgress(userKey(), nodeId);
-      const decision = recordProgressionSession(current, { summary, wrapperMode, dataQualityAdequate: summary.validTrials >= 10 }, module.progression);
+      const decision = attentionQa && nodeId === "attention"
+        ? recordAttentionQaSession(current, summary, wrapperMode)
+        : recordProgressionSession(current, { summary, wrapperMode, dataQualityAdequate: summary.validTrials >= 10 }, module.progression);
       saveBrowserNodeProgress(userKey(), nodeId, decision.state);
       module.game.destroy();
       renderSessionSummary(nodeId, summary, decision);
@@ -325,10 +756,30 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
 
   function renderSessionSummary(nodeId: NodeId, summary: TrainingSummary, decision: ProgressionDecision): void {
     const module = getNodeModule(nodeId);
-    root.innerHTML = shell(`<section class="panel screen-panel session-complete-panel"><p class="section-kicker">DONE</p><h2>Nice work</h2>
-      <div class="metric-row">${(summary.displayMetrics ?? []).map((metric) => `<span><strong>${escapeHtml(metric.label)}</strong><br>${escapeHtml(metric.value)}</span>`).join("")}</div>
-      <p><strong>Next:</strong> ${escapeHtml(PHASE_PUBLIC_LABELS[decision.state.phase])}</p><p class="muted-copy">Your training path adapts as you go.</p>
-      <div class="button-row"><button type="button" class="platform-button" data-action="node-home">Back to ${escapeHtml(module.shortTitle)}</button><button type="button" class="platform-button secondary-button" data-action="strategy">Use it in real life</button></div></section>`);
+    const completedIndex = Math.max(0, decision.state.totalSessions - 1);
+    const beat = nodeId === "attention" ? attentionJourneyBeat(completedIndex) : null;
+    const nextBeat = nodeId === "attention" && decision.state.totalSessions < ATTENTION_QA_SEQUENCE.length
+      ? attentionJourneyBeat(decision.state.totalSessions)
+      : null;
+    const firstSession = decision.state.totalSessions === 1;
+    const salienceSession = nodeId === "attention" && completedIndex === 3;
+    root.innerHTML = shell(`<section class="panel screen-panel session-complete-panel">
+      <p class="section-kicker">WHAT YOU JUST PRACTISED</p>
+      <h2>${escapeHtml(beat?.debriefTitle ?? "Session complete")}</h2>
+      <p>${escapeHtml(beat?.debriefCopy ?? "You completed another focused training session.")}</p>
+      ${module.journey ? `<div class="portable-move"><span>THE MOVE</span><strong>${escapeHtml(module.journey.portableMove)}</strong></div>` : ""}
+      <div class="training-result-block">
+        <p class="section-kicker">TRAINING RESULT</p>
+        <div class="metric-row">${(summary.displayMetrics ?? []).map((metric) => `<span><strong>${escapeHtml(metric.label)}</strong><br>${escapeHtml(metric.value)}</span>`).join("")}</div>
+        <p class="muted-copy">This result describes performance in the training task. It is not by itself evidence of real-world transfer or increased general intelligence.</p>
+      </div>
+      <p><strong>Next:</strong> ${escapeHtml(firstSession ? "extract the portable move" : nextBeat?.title ?? "take the skill into another context")}</p>
+      <div class="button-row">
+        <button type="button" class="platform-button" data-action="${firstSession ? "strategy" : "node-home"}">${firstSession ? "Learn the move" : "Continue journey"} →</button>
+        ${salienceSession ? '<button type="button" class="platform-button secondary-button" data-action="ai-practice">Try the AI niche challenge</button>' : ""}
+        ${!firstSession ? '<button type="button" class="platform-button secondary-button" data-action="strategy">Review the move</button>' : ""}
+      </div>
+    </section>`);
   }
 
   async function loadEntitlementsForUser(): Promise<void> {
@@ -350,18 +801,53 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
   root.addEventListener("click", (event) => {
     const rawTarget = event.target;
     if (!(rawTarget instanceof Element)) return;
-    const target = rawTarget.closest<HTMLElement>("[data-action], [data-open-node], [data-plan-mission], [data-strategy-status], [data-strategy-page], [data-mission-page]");
+    const target = rawTarget.closest<HTMLElement>("[data-action], [data-open-node], [data-plan-mission], [data-mission-checkin], [data-bank-mission], [data-strategy-status], [data-strategy-page], [data-mission-page]");
     if (!target) return;
 
     const openNodeId = target.dataset.openNode as NodeId | undefined;
     if (openNodeId) {
-      renderNodeHome(openNodeId);
+      state.selectedNodeId = openNodeId;
+      const module = isNodeModuleRegistered(openNodeId) ? getNodeModule(openNodeId) : null;
+      if (module?.journey && !hasSeenNodeChapter(userKey(), openNodeId)) renderChapterIntro(openNodeId);
+      else renderNodeHome(openNodeId);
+      return;
+    }
+
+    const checkinMissionId = target.dataset.missionCheckin;
+    if (checkinMissionId && state.selectedNodeId) {
+      renderMissionCheckin(state.selectedNodeId, checkinMissionId);
+      return;
+    }
+    const bankMissionId = target.dataset.bankMission;
+    if (bankMissionId && state.selectedNodeId) {
+      renderBankLearning(state.selectedNodeId, bankMissionId);
       return;
     }
 
     const action = target.dataset.action;
     if (action === "sign-out") {
       void signOutPlatformUser();
+      return;
+    }
+    if (action === "orientation-attention") {
+      markPlatformOrientationSeen(userKey());
+      state.selectedNodeId = "attention";
+      if (hasSeenNodeChapter(userKey(), "attention")) renderNodeHome("attention");
+      else renderChapterIntro("attention");
+      return;
+    }
+    if (action === "orientation-dashboard") {
+      markPlatformOrientationSeen(userKey());
+      renderDashboard();
+      return;
+    }
+    if (action === "chapter" && state.selectedNodeId) {
+      renderChapterIntro(state.selectedNodeId);
+      return;
+    }
+    if (action === "chapter-begin" && state.selectedNodeId) {
+      markNodeChapterSeen(userKey(), state.selectedNodeId);
+      renderNodeHome(state.selectedNodeId);
       return;
     }
     if (action === "dashboard") {
@@ -376,7 +862,21 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       return;
     }
     if (action === "train" && state.selectedNodeId) {
+      renderTrainingIntro(state.selectedNodeId);
+      return;
+    }
+    if (action === "start-session" && state.selectedNodeId) {
       renderTraining(state.selectedNodeId);
+      return;
+    }
+    if (action === "ai-practice" && state.selectedNodeId === "attention") {
+      renderAiPractice();
+      return;
+    }
+    if (action === "reset-attention-qa") {
+      clearBrowserNodeProgress(userKey(), "attention");
+      state.notice = "Attention QA progress reset.";
+      renderNodeHome("attention");
       return;
     }
     if (action === "strategy" && state.selectedNodeId) {
@@ -416,8 +916,8 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     if (strategyStatus && state.selectedNodeId) {
       const next = strategyStatus === "practising" ? "practising" : "learned";
       saveBrowserStrategyStatus(userKey(), state.selectedNodeId, next);
-      state.notice = next === "learned" ? "Strategy saved." : "Practice mode on.";
-      renderStrategy(state.selectedNodeId);
+      state.notice = next === "learned" ? "Portable move saved. Next: use it in a real situation." : "Practice mode on. Next: use it in a real situation.";
+      renderNodeHome(state.selectedNodeId);
       return;
     }
 
@@ -435,17 +935,18 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
         nicheChangeType: template.suggestedNicheChanges?.[0] ?? "none",
         status: "planned",
         createdAt: new Date().toISOString(),
+        dueAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       };
       saveBrowserMission(userKey(), mission);
-      state.notice = "Mission added.";
-      state.missionPage = module.missions.length;
-      renderMissions(state.selectedNodeId);
+      state.notice = "Reality mission planned. Try it outside the app, then return and tell the app what happened.";
+      renderNodeHome(state.selectedNodeId);
     }
   });
 
   async function hydrate(): Promise<void> {
     if (localPreview) {
-      renderDashboard();
+      if (hasSeenPlatformOrientation(userKey())) renderDashboard();
+      else renderOrientation();
       return;
     }
     if (!isPlatformAuthConfigured) {
@@ -458,7 +959,8 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       return;
     }
     await loadEntitlementsForUser();
-    renderDashboard();
+    if (hasSeenPlatformOrientation(userKey())) renderDashboard();
+    else renderOrientation();
   }
 
   onPlatformAuthChange((user) => {
@@ -475,7 +977,8 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
         return;
       }
       await loadEntitlementsForUser();
-      renderDashboard();
+      if (hasSeenPlatformOrientation(userKey())) renderDashboard();
+      else renderOrientation();
     })();
   });
 

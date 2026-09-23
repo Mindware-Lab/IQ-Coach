@@ -1,0 +1,31 @@
+/* Canonical Synergy IQ capacity palette 2026-09-23.1.
+   Exact identity colours from the user-approved chart.
+   Mirrored unchanged in IQ-Coach and trident-g-platform.
+   Never apply these brand variables to scored stimulus geometry. */
+:root {
+  --iqm-palette-version: "2026-09-23.1";
+  --iqm-palette-blue: #22AAFF;
+  --iqm-palette-ink: #0A2550;
+  --iqm-palette-lime: #CCFF66;
+  --iqm-attention-control-identity: #22AAFF;
+  --iqm-attention-control-deep: #1266B5;
+  --iqm-attention-control-wash: #EAF6FF;
+  --iqm-relational-memory-identity: #9B7AFF;
+  --iqm-relational-memory-deep: #6441C6;
+  --iqm-relational-memory-wash: #F1ECFF;
+  --iqm-binding-memory-identity: #ED74AB;
+  --iqm-binding-memory-deep: #A82E68;
+  --iqm-binding-memory-wash: #FFF0F7;
+  --iqm-path-horizon-identity: #FFAB63;
+  --iqm-path-horizon-deep: #A74E0B;
+  --iqm-path-horizon-wash: #FFF2E5;
+  --iqm-knowledge-access-identity: #F6C64B;
+  --iqm-knowledge-access-deep: #795900;
+  --iqm-knowledge-access-wash: #FFF8DA;
+  --iqm-generative-search-identity: #31C89B;
+  --iqm-generative-search-deep: #08785A;
+  --iqm-generative-search-wash: #E7FAF3;
+  --iqm-reasoning-identity: #40BEC7;
+  --iqm-reasoning-deep: #08707A;
+  --iqm-reasoning-wash: #E9F8F8;
+}
