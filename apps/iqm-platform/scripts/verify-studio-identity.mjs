@@ -57,7 +57,7 @@ try{
   await inspect('welcome',false);
   await action('begin');await inspect('node-introduction',true);
   check('node CTA replaces chapter',await page.locator('[data-do="chapter-begin"]').innerText()==='Begin the node');
-  await action('chapter-begin');await inspect('home',true);
+  await action('chapter-begin');await action('home');await inspect('home',true);
   check('home card has node number',/Node 01/.test(await page.locator('.st-card-overline').innerText()));
   check('home does not present chapter as capacity label',!(/\bchapter\b/i.test(await page.locator('.studio').innerText())));
   await action('network');await inspect('network',false);
