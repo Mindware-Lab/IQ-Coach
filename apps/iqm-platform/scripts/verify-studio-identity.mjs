@@ -71,8 +71,7 @@ try{
   await action('node:attention');await action('home');await action('more');await inspect('tools',true);
   check('replay is now a node introduction',await page.locator('[data-do="chapter"]').innerText().then(t=>t.includes('Replay node introduction')));
   await action('briefing');await inspect('briefing',true);
-  const geometry=await page.locator('.attention-instruction svg').count();
-  check('actual instructional renderer retained',geometry>0);
+  check('actual instructional renderer retained',await page.locator('.st-attention-example svg').count()>0);
   await action('start');await inspect('training',false);
   check('no uncaught errors',errors.length===0);
   await writeFile(join(output,'identity-review.json'),JSON.stringify({checks:checks.length,errors,assertions:checks},null,2));
