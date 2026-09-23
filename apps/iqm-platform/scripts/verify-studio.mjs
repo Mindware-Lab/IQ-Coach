@@ -204,7 +204,7 @@ try {
   await action('more');await screen('more');await layout('more');
   // Asset failure must leave a readable and actionable screen.
   await context.route('**/art/**',route=>route.abort());
-  await action('chapter');await screen('chapter');check('chapter action survives artwork failure',await page.getByRole('button',{name:'Begin the chapter'}).isVisible());
+  await action('chapter');await screen('chapter');check('node action survives artwork failure',await page.getByRole('button',{name:'Begin the node'}).isVisible());
   check('no uncaught browser errors',errors.length===0);
   await writeFile(join(output,'qa-results.json'),JSON.stringify({passed:checks.length,checks,errors,screenshots:'Actual built application; QA interactions and clock only. Not participant data or evidence of efficacy.'},null,2));
   console.log(JSON.stringify({passed:checks.length,errors,output}));
