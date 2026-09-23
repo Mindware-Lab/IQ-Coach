@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import manifestText from '../../src/theme/synergy-node-palette.json?raw';
+import css from '../../src/theme/synergy-node-palette.css?raw';
 import { NODE_WORLDS } from '../../src/app/studioModel';
 import type { NodeId } from '../../src/types/node';
-const palette = JSON.parse(readFileSync(new URL('../../src/theme/synergy-node-palette.json', import.meta.url), 'utf8'));
-const css = readFileSync(new URL('../../src/theme/synergy-node-palette.css', import.meta.url), 'utf8');
+const palette = JSON.parse(manifestText);
 const approved = ['#22AAFF','#9B7AFF','#ED74AB','#FFAB63','#F6C64B','#31C89B','#40BEC7'];
 function luminance(hex: string) {
   const c = [1,3,5].map(i => parseInt(hex.slice(i,i+2),16)/255).map(v => v <= .04045 ? v/12.92 : ((v+.055)/1.055)**2.4);
