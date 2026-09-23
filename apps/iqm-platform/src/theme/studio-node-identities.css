@@ -8,7 +8,8 @@
 .studio .st-node[data-do="node:knowledge-access"] { --node-colour: var(--iqm-knowledge-access-identity) !important; }
 .studio .st-node[data-do="node:generative-search"] { --node-colour: var(--iqm-generative-search-identity) !important; }
 .studio .st-node[data-do="node:reasoning"] { --node-colour: var(--iqm-reasoning-identity) !important; }
-.studio .st-node > span { color: var(--iqm-palette-ink); }
+/* Every marker shows its identity; the existing ring distinguishes selection. */
+.studio .st-node > span { background: var(--node-colour); color: var(--iqm-palette-ink); }
 .studio .st-world-card { border-top: 4px solid var(--accent); }
 .studio .st-world-card > div:not(.st-art) { background: linear-gradient(160deg, var(--soft), #FFF 82%); }
 .studio:not(.st-training) .st-eyebrow { color: var(--action); }
