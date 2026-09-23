@@ -20,7 +20,6 @@
 .studio[data-identity-ready][data-screen="home"] .st-checkin-card:not(button) { display:none; }
 .studio[data-identity-ready][data-screen="home"] .st-home-grid { margin-top:20px; }
 .studio[data-identity-ready] .st-checkin-card:not(button) .st-checkin-icon { background:var(--accent); color:#0A2550; border-radius:12px; }
-.studio[data-identity-ready] .st-node > span { border-radius:13px; }
 /* Training identity is compact; keep the old topbar size and the task area. */
 .studio .st-training-node { display:flex; align-items:center; gap:7px; color:#0A2550; }
 .st-training-node-icon { width:28px; height:28px; display:grid; place-items:center; border-radius:9px; background:var(--identity); flex:none; }
@@ -28,6 +27,12 @@
 .st-training-node > span:last-child { display:grid; gap:2px; }
 .st-training-node small { font:800 8px/1.2 system-ui,sans-serif; letter-spacing:.1em; text-transform:uppercase; }
 .st-training-node strong { font:800 12px/1.2 var(--st-display,system-ui,sans-serif); }
+@media (min-width:721px) and (min-height:721px) {
+  .studio[data-identity-ready] .st-home-heading .st-lede { max-width:none; }
+  .studio[data-identity-ready][data-screen="home"] .st-home-grid { margin-top:14px; }
+  .studio[data-identity-ready] .st-next-card { min-height:280px; padding:20px; }
+  .studio[data-identity-ready] .st-card-copy { max-width:none; font-size:12.5px; }
+}
 @media (max-width:720px) {
   .studio[data-identity-ready]:not(.st-training) .st-topbar { height:58px; }
   .studio[data-identity-ready] .st-brand-wordmark { font-size:22px; }
