@@ -1,16 +1,11 @@
 import { CORS, json, readPayload } from "../_shared/http.ts";
 
-type PurchaseProductCode =
-  | "g_track"
-  | "cognitive_control_coach"
-  | "complete_cognitive_route"
-  | "synergy_attention";
+type PurchaseProductCode = "g_track" | "cognitive_control_coach" | "complete_cognitive_route" | "synergy_attention";
 
 const STRIPE_API_VERSION = "2026-02-25.clover";
 const COGNITIVE_CONTROL_COACH_PRODUCT_ID = "prod_V5DWcTnJ6t2c9h";
 const SYNERGY_ATTENTION_PRICE_ID = "price_1UJDnrAZLCi6B66bz2ioQAVe";
 const SYNERGY_IQ_APP_URL = "https://www.iqmindware.com/synergy-iq/";
-
 const PRODUCT_CODES = new Set<PurchaseProductCode>([
   "g_track",
   "cognitive_control_coach",
@@ -25,9 +20,7 @@ function checkoutReturnUrl(appUrl: string, state: "complete" | "cancelled"): str
   return url.toString();
 }
 
-function productConfiguration(
-  productCode: PurchaseProductCode,
-): { priceId?: string; productId?: string; appUrl?: string } {
+function productConfiguration(productCode: PurchaseProductCode): { priceId?: string; productId?: string; appUrl?: string } {
   if (productCode === "g_track") {
     return {
       priceId: Deno.env.get("STRIPE_G_TRACK_PRICE_ID"),
@@ -167,7 +160,7 @@ Deno.serve(async (request) => {
 
   const checkoutUrl = new URL(stripeSession.url);
   if (checkoutUrl.protocol !== "https:" || checkoutUrl.hostname !== "checkout.stripe.com") {
-    return json(502, { error: "Stripe Checkout returned an invalid payment URL." });
+    return json(502, { error: "Stripe Checkout returned an invalid URL." });
   }
   return json(200, { url: checkoutUrl.toString() });
 });
