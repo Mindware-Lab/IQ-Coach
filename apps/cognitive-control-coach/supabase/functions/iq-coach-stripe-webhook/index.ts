@@ -168,7 +168,9 @@ Deno.serve(async (request) => {
     redirectUrl.searchParams.set("checkout", "access");
     const { error: emailError } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: redirectUrl.toString(), shouldCreateUser: true },
+      options: productCode === "synergy_attention"
+        ? { shouldCreateUser: true }
+        : { emailRedirectTo: redirectUrl.toString(), shouldCreateUser: true },
     });
     if (emailError) {
       return json(500, { error: "Paid access was stored, but the sign-in email could not be sent." });
