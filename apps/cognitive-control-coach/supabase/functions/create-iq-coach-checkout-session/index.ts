@@ -1,12 +1,20 @@
 import { CORS, json, readPayload } from "../_shared/http.ts";
 
-type PurchaseProductCode = "g_track" | "cognitive_control_coach" | "complete_cognitive_route";
+type PurchaseProductCode =
+  | "g_track"
+  | "cognitive_control_coach"
+  | "complete_cognitive_route"
+  | "synergy_attention";
 
 const STRIPE_API_VERSION = "2026-02-25.clover";
+const SYNERGY_ATTENTION_PRICE_ID = "price_1UJDnrAZLCi6B66bz2ioQAVe";
+const SYNERGY_IQ_APP_URL = "https://www.iqmindware.com/synergy-iq/";
+
 const PRODUCT_CODES = new Set<PurchaseProductCode>([
   "g_track",
   "cognitive_control_coach",
   "complete_cognitive_route",
+  "synergy_attention",
 ]);
 
 function checkoutReturnUrl(appUrl: string, state: "complete" | "cancelled"): string {
@@ -27,6 +35,12 @@ function productConfiguration(productCode: PurchaseProductCode): { priceId?: str
     return {
       priceId: Deno.env.get("STRIPE_COGNITIVE_CONTROL_COACH_PRICE_ID"),
       appUrl: Deno.env.get("COGNITIVE_CONTROL_COACH_APP_URL"),
+    };
+  }
+  if (productCode === "synergy_attention") {
+    return {
+      priceId: SYNERGY_ATTENTION_PRICE_ID,
+      appUrl: SYNERGY_IQ_APP_URL,
     };
   }
   return {
