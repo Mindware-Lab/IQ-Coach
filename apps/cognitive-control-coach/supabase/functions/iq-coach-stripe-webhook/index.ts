@@ -1,8 +1,14 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.104.1";
 
-type PurchaseProductCode = "g_track" | "cognitive_control_coach" | "complete_cognitive_route";
+type PurchaseProductCode =
+  | "g_track"
+  | "cognitive_control_coach"
+  | "complete_cognitive_route"
+  | "synergy_attention";
 
 const STRIPE_API_VERSION = "2026-02-25.clover";
+const SYNERGY_ATTENTION_PRICE_ID = "price_1UJDnrAZLCi6B66bz2ioQAVe";
+const SYNERGY_IQ_APP_URL = "https://www.iqmindware.com/synergy-iq/";
 const COMPLETE_ROUTE_PROMO_PRICE_IDS = new Set([
   "price_1U5RaBAZLCi6B66bgtw7tW0q",
 ]);
@@ -25,13 +31,14 @@ function productPriceIds(): Record<PurchaseProductCode, string[]> {
     complete_cognitive_route: completeRoutePriceId
       ? [completeRoutePriceId, ...COMPLETE_ROUTE_PROMO_PRICE_IDS]
       : [],
+    synergy_attention: [SYNERGY_ATTENTION_PRICE_ID],
   };
 }
 
 function productAppUrl(productCode: PurchaseProductCode): string | undefined {
-  return productCode === "g_track"
-    ? Deno.env.get("G_TRACK_APP_URL")
-    : Deno.env.get("COGNITIVE_CONTROL_COACH_APP_URL");
+  if (productCode === "g_track") return Deno.env.get("G_TRACK_APP_URL");
+  if (productCode === "synergy_attention") return SYNERGY_IQ_APP_URL;
+  return Deno.env.get("COGNITIVE_CONTROL_COACH_APP_URL");
 }
 
 function hexBytes(input: string): Uint8Array {
