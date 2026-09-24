@@ -1,10 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.104.1";
 
-type PurchaseProductCode =
-  | "g_track"
-  | "cognitive_control_coach"
-  | "complete_cognitive_route"
-  | "synergy_attention";
+type PurchaseProductCode = "g_track" | "cognitive_control_coach" | "complete_cognitive_route" | "synergy_attention";
 
 const STRIPE_API_VERSION = "2026-02-25.clover";
 const SYNERGY_ATTENTION_PRICE_ID = "price_1UJDnrAZLCi6B66bz2ioQAVe";
