@@ -7,7 +7,13 @@ type PurchaseProductCode =
   | "synergy_attention";
 
 const STRIPE_API_VERSION = "2026-02-25.clover";
-const SYNERGY_ATTENTION_PRICE_ID = "price_1UJDnrAZLCi6B66bz2ioQAVe";
+const SYNERGY_ATTENTION_PRICE_IDS = [
+  "price_1UJDnrAZLCi6B66bz2ioQAVe", // legacy $19
+  "price_1UMmu5AZLCi6B66b9pL62MX2", // $5 loyalty
+  "price_1UMmuGAZLCi6B66bWBLUay6h", // $10 customer
+  "price_1UMmuHAZLCi6B66beqtOWupK", // $15 launch
+  "price_1UMmuJAZLCi6B66bLbIBb4Bz", // $20 retail/default
+] as const;
 const SYNERGY_IQ_APP_URL = "https://www.iqmindware.com/synergy-iq/";
 const COMPLETE_ROUTE_PROMO_PRICE_IDS = new Set([
   "price_1U5RaBAZLCi6B66bgtw7tW0q",
@@ -31,7 +37,7 @@ function productPriceIds(): Record<PurchaseProductCode, string[]> {
     complete_cognitive_route: completeRoutePriceId
       ? [completeRoutePriceId, ...COMPLETE_ROUTE_PROMO_PRICE_IDS]
       : [],
-    synergy_attention: [SYNERGY_ATTENTION_PRICE_ID],
+    synergy_attention: [...SYNERGY_ATTENTION_PRICE_IDS],
   };
 }
 
