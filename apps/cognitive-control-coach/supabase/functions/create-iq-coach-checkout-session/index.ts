@@ -8,7 +8,7 @@ type PurchaseProductCode =
 
 const STRIPE_API_VERSION = "2026-02-25.clover";
 const COGNITIVE_CONTROL_COACH_PRODUCT_ID = "prod_V5DWcTnJ6t2c9h";
-const SYNERGY_ATTENTION_PRICE_ID = "price_1UJDnrAZLCi6B66bz2ioQAVe";
+const SYNERGY_ATTENTION_PRODUCT_ID = "prod_VJrW8H418pqmU9";
 const SYNERGY_IQ_APP_URL = "https://www.iqmindware.com/synergy-iq/";
 
 const PRODUCT_CODES = new Set<PurchaseProductCode>([
@@ -42,7 +42,7 @@ function productConfiguration(
   }
   if (productCode === "synergy_attention") {
     return {
-      priceId: SYNERGY_ATTENTION_PRICE_ID,
+      productId: SYNERGY_ATTENTION_PRODUCT_ID,
       appUrl: SYNERGY_IQ_APP_URL,
     };
   }
